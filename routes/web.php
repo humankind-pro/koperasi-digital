@@ -1,7 +1,8 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\AdminController; // <-- DITAMBAHKAN
+use App\Http\Controllers\AdminController;
+use App\Http\Controllers\KaryawanController; // <-- DITAMBAHKAN
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -34,6 +35,7 @@ Route::middleware(['auth', 'role:super_admin'])->group(function () {
 
     // Route resource untuk CRUD Admin
     Route::resource('admins', AdminController::class);
+    Route::resource('karyawans', KaryawanController::class);
 });
 
 // ===============================================================
