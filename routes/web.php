@@ -24,6 +24,11 @@ Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
+// Route untuk Super Admin
+Route::get('/super-admin/dashboard', function () {
+    return view('super_admin.dashboard');
+})->middleware(['auth'])->name('super_admin.dashboard');
+
 // Route untuk manajemen profil user
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
