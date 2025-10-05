@@ -1,11 +1,10 @@
 <nav x-data="{ open: false }" class="bg-white border-b border-gray-100">
+    <!-- Primary Navigation Menu -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16">
             <div class="flex">
+                <!-- Logo -->
                 <div class="shrink-0 flex items-center">
-                    {{-- =============================================================== --}}
-                    {{-- AWAL PERUBAHAN 1: Link pada Logo --}}
-                    {{-- =============================================================== --}}
                     @if (Auth::user()->role === 'super_admin')
                         <a href="{{ route('super_admin.dashboard') }}">
                             <x-application-logo class="block h-9 w-auto fill-current text-gray-800" />
@@ -15,15 +14,11 @@
                             <x-application-logo class="block h-9 w-auto fill-current text-gray-800" />
                         </a>
                     @endif
-                    {{-- =============================================================== --}}
-                    {{-- AKHIR PERUBAHAN 1 --}}
-                    {{-- =============================================================== --}}
                 </div>
 
+                <!-- Navigation Links -->
                 <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                    {{-- =============================================================== --}}
-                    {{-- AWAL PERUBAHAN 2: Link Navigasi Dashboard --}}
-                    {{-- =============================================================== --}}
+                    <!-- Link Dashboard Dinamis -->
                     @if (Auth::user()->role === 'super_admin')
                         <x-nav-link :href="route('super_admin.dashboard')" :active="request()->routeIs('super_admin.dashboard')">
                             {{ __('Dashboard') }}
@@ -33,11 +28,8 @@
                             {{ __('Dashboard') }}
                         </x-nav-link>
                     @endif
-                    {{-- =============================================================== --}}
-                    {{-- AKHIR PERUBAHAN 2 --}}
-                    {{-- =============================================================== --}}
 
-                    {{-- Menu Khusus Super Admin --}}
+                    <!-- Menu Khusus Super Admin -->
                     @if (Auth::user()->role === 'super_admin')
                         <x-nav-link href="#" :active="false">
                             {{ __('Rekapan Data') }}
@@ -45,15 +37,22 @@
                         <x-nav-link href="#" :active="false">
                             {{ __('Data Karyawan') }}
                         </x-nav-link>
-                        <x-nav-link href="#" :active="false">
+
+                        {{-- =============================================================== --}}
+                        {{-- AWAL PERUBAHAN --}}
+                        {{-- =============================================================== --}}
+                        <x-nav-link :href="route('admins.index')" :active="request()->routeIs('admins.*')">
                             {{ __('Data Admin') }}
                         </x-nav-link>
+                        {{-- =============================================================== --}}
+                        {{-- AKHIR PERUBAHAN --}}
+                        {{-- =============================================================== --}}
                     @endif
                 </div>
             </div>
 
+            <!-- Settings Dropdown -->
             <div class="hidden sm:flex sm:items-center sm:ms-6">
-                {{-- ... (bagian dropdown setting tidak perlu diubah) ... --}}
                 <x-dropdown align="right" width="48">
                     <x-slot name="trigger">
                         <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none transition ease-in-out duration-150">
@@ -71,9 +70,7 @@
                         </x-dropdown-link>
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
-                            <x-dropdown-link :href="route('logout')"
-                                    onclick="event.preventDefault();
-                                                this.closest('form').submit();">
+                            <x-dropdown-link :href="route('logout')" onclick="event.preventDefault(); this.closest('form').submit();">
                                 {{ __('Log Out') }}
                             </x-dropdown-link>
                         </form>
@@ -81,8 +78,8 @@
                 </x-dropdown>
             </div>
 
+            <!-- Hamburger -->
             <div class="-me-2 flex items-center sm:hidden">
-                {{-- ... (bagian hamburger tidak perlu diubah) ... --}}
                 <button @click="open = ! open" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 focus:text-gray-500 transition duration-150 ease-in-out">
                     <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
                         <path :class="{'hidden': open, 'inline-flex': ! open }" class="inline-flex" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
@@ -93,11 +90,10 @@
         </div>
     </div>
 
+    <!-- Responsive Navigation Menu -->
     <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden">
         <div class="pt-2 pb-3 space-y-1">
-            {{-- =============================================================== --}}
-            {{-- AWAL PERUBAHAN 3: Link Navigasi Dashboard Responsif --}}
-            {{-- =============================================================== --}}
+            <!-- Link Dashboard Dinamis Responsif -->
             @if (Auth::user()->role === 'super_admin')
                 <x-responsive-nav-link :href="route('super_admin.dashboard')" :active="request()->routeIs('super_admin.dashboard')">
                     {{ __('Dashboard') }}
@@ -107,11 +103,8 @@
                     {{ __('Dashboard') }}
                 </x-responsive-nav-link>
             @endif
-            {{-- =============================================================== --}}
-            {{-- AKHIR PERUBAHAN 3 --}}
-            {{-- =============================================================== --}}
 
-            {{-- Menu Khusus Super Admin Responsif --}}
+            <!-- Menu Khusus Super Admin Responsif -->
             @if (Auth::user()->role === 'super_admin')
                 <x-responsive-nav-link href="#" :active="false">
                     {{ __('Rekapan Data') }}
@@ -119,14 +112,21 @@
                 <x-responsive-nav-link href="#" :active="false">
                     {{ __('Data Karyawan') }}
                 </x-responsive-nav-link>
-                <x-responsive-nav-link href="#" :active="false">
+
+                {{-- =============================================================== --}}
+                {{-- AWAL PERUBAHAN --}}
+                {{-- =============================================================== --}}
+                <x-responsive-nav-link :href="route('admins.index')" :active="request()->routeIs('admins.*')">
                     {{ __('Data Admin') }}
                 </x-responsive-nav-link>
+                {{-- =============================================================== --}}
+                {{-- AKHIR PERUBAHAN --}}
+                {{-- =============================================================== --}}
             @endif
         </div>
 
+        <!-- Responsive Settings Options -->
         <div class="pt-4 pb-1 border-t border-gray-200">
-             {{-- ... (bagian setting responsif tidak perlu diubah) ... --}}
             <div class="px-4">
                 <div class="font-medium text-base text-gray-800">{{ Auth::user()->name }}</div>
                 <div class="font-medium text-sm text-gray-500">{{ Auth::user()->email }}</div>
@@ -137,9 +137,7 @@
                 </x-responsive-nav-link>
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
-                    <x-responsive-nav-link :href="route('logout')"
-                            onclick="event.preventDefault();
-                                        this.closest('form').submit();">
+                    <x-responsive-nav-link :href="route('logout')" onclick="event.preventDefault(); this.closest('form').submit();">
                         {{ __('Log Out') }}
                     </x-responsive-nav-link>
                 </form>
