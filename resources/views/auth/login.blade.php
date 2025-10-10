@@ -17,7 +17,7 @@
         </div>
 
         <!-- Right Section with Form -->
-        <div class="flex-1 bg-[#EAE2B7] flex flex-col items-center justify-center p-10 relative">
+        <div class="flex-1 bg-[#E6F3FF] flex flex-col items-center justify-center p-10 relative">
             <div class="w-full max-w-md">
                 <h1 class="text-5xl font-bold text-[#1a3a52] mb-16 text-center">Login</h1>
 
@@ -42,10 +42,10 @@
                             type="email" 
                             name="email" 
                             value="{{ old('email') }}" 
-                            placeholder="Enter your Username here"
+                            placeholder="Masukkan Email Anda"
                             required 
                             autofocus 
-                            autocomplete="username"
+                            autocomplete="email"
                         >
                         @error('email')
                             <div class="mt-1.5 text-red-600 text-sm">{{ $message }}</div>
@@ -79,17 +79,10 @@
                         Enter
                     </button>
 
-                    <!-- Contact Link -->
-                    <div class="text-center mt-5 text-sm text-gray-600">
-                        Any problem? <a href="#" class="text-[#1a3a52] font-semibold hover:underline">contact centre</a>
-                    </div>
-                </form>
-            </div>
-
             <!-- Footer -->
-            <div class="absolute bottom-8 text-sm font-medium text-[#1a3a52]">
-                Koperasi Harmoni
-            </div>
+            <div class="absolute bottom-8 left-1/2 -translate-x-1/2 text-sm font-medium text-[#1a3a52]">
+    Koperasi Harmoni
+</div>
         </div>
     </div>
 </body>
