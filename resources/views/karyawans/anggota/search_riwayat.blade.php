@@ -3,15 +3,13 @@
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 md:p-8 text-gray-900">
-                    <h3 class="text-xl font-bold text-gray-800 mb-6">
-                        Cari Riwayat Validasi Pinjaman Nasabah
-                    </h3>
+                    <h3 class="text-xl font-bold text-gray-800 mb-6">Cari Riwayat Pinjaman Nasabah</h3>
 
-                    {{-- Area untuk pesan error/sukses pencarian --}}
+                    {{-- Area untuk pesan error/sukses --}}
                     <div id="search-feedback" class="mb-4 text-sm"></div>
 
                     {{-- Form Pencarian NIK --}}
-                    <div class="mb-8 flex items-end space-x-2">
+                    <div class="mb-6 flex items-end space-x-2">
                         <div class="flex-grow">
                             <label for="nik_search" class="block text-sm font-medium text-gray-700">Masukkan NIK Nasabah</label>
                             <input type="text" id="nik_search" name="nik_search" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" placeholder="NIK...">
@@ -21,19 +19,18 @@
                         </button>
                     </div>
 
-                    {{-- Area untuk Menampilkan Hasil (Awalnya tersembunyi) --}}
+                    {{-- Area untuk Menampilkan Hasil --}}
                     <div id="result-area" class="mt-8 hidden">
-                        <h4 class="text-lg font-semibold mb-4">Riwayat Pinjaman untuk: <span id="anggota-name" class="text-cyan-600"></span></h4>
-
+                        <h4 class="text-lg font-semibold mb-2">Hasil Pencarian untuk: <span id="anggota-name" class="text-cyan-600"></span></h4>
+                        
                         <div class="space-y-4">
-                            <div class="flex items-center pb-2 border-b-2 font-semibold text-gray-500 uppercase text-xs">
-                                <div class="w-1/5">Tgl Validasi</div>
-                                <div class="w-1/5">Jumlah Disetujui</div>
-                                <div class="w-1/5">Diajukan Oleh</div>
-                                <div class="w-1/5">Divalidasi Oleh</div>
-                                <div class="w-1/5 text-center">Status</div>
+                             <div class="flex items-center pb-2 border-b-2 font-semibold text-gray-500 uppercase text-xs">
+                                <div class="w-1/4">Tgl Pengajuan</div>
+                                <div class="w-1/4">Jumlah Diajukan</div>
+                                <div class="w-1/4">Jumlah Disetujui</div>
+                                <div class="w-1/4 text-center">Status</div>
                             </div>
-
+                            
                             {{-- Konten Riwayat (diisi oleh JS) --}}
                             <div id="riwayat-list">
                                 {{-- Data riwayat akan dimasukkan di sini oleh JavaScript --}}
@@ -60,7 +57,7 @@
                 const nik = nikInput.value.trim();
                 searchFeedback.textContent = '';
                 resultArea.classList.add('hidden');
-                riwayatListDiv.innerHTML = ''; // Kosongkan riwayat
+                riwayatListDiv.innerHTML = ''; // Kosongkan riwayat sebelumnya
 
                 if (!nik) {
                     searchFeedback.textContent = 'Silakan masukkan NIK.';
@@ -71,8 +68,7 @@
                 searchFeedback.textContent = 'Mencari...';
                 searchFeedback.className = 'mb-4 text-sm text-gray-500';
 
-                // Panggil route pencarian NIK Admin
-                fetch(`{{ route('admin.search.nik.riwayat') }}?nik=${nik}`, {
+                fetch(`{{ route('anggota.search.nik.riwayat') }}?nik=${nik}`, {
                     method: 'GET',
                     headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
                 })
@@ -80,40 +76,36 @@
                 .then(data => {
                     if (data.success) {
                         searchFeedback.textContent = '';
-                        anggotaNameEl.textContent = data.anggota.nama;
+                        anggotaNameEl.textContent = data.anggota.nama; // Tampilkan nama anggota
 
+                        // Tampilkan riwayat pinjaman
                         if (data.riwayat && data.riwayat.length > 0) {
                             data.riwayat.forEach(pinjaman => {
                                 const row = document.createElement('div');
                                 row.className = 'flex items-center py-3 border-b';
 
-                                // Tgl Validasi
+                                // Tgl Pengajuan
                                 const tglCell = document.createElement('div');
-                                tglCell.className = 'w-1/5 text-sm text-gray-600';
-                                tglCell.textContent = pinjaman.tanggal_validasi ? new Date(pinjaman.tanggal_validasi).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
+                                tglCell.className = 'w-1/4 text-sm text-gray-600';
+                                tglCell.textContent = new Date(pinjaman.tanggal_pengajuan).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
                                 row.appendChild(tglCell);
 
+                                // Jumlah Diajukan
+                                const jmlAjuanCell = document.createElement('div');
+                                jmlAjuanCell.className = 'w-1/4 text-sm text-gray-600';
+                                jmlAjuanCell.textContent = `Rp ${parseInt(pinjaman.jumlah_pinjaman).toLocaleString('id-ID')}`;
+                                row.appendChild(jmlAjuanCell);
+                                
                                 // Jumlah Disetujui
                                 const jmlSetujuCell = document.createElement('div');
-                                jmlSetujuCell.className = 'w-1/5 text-sm text-gray-600';
+                                jmlSetujuCell.className = 'w-1/4 text-sm text-gray-600';
                                 jmlSetujuCell.textContent = pinjaman.status === 'disetujui' ? `Rp ${parseInt(pinjaman.jumlah_disetujui).toLocaleString('id-ID')}` : '-';
                                 row.appendChild(jmlSetujuCell);
 
-                                // Diajukan Oleh
-                                const diajukanCell = document.createElement('div');
-                                diajukanCell.className = 'w-1/5 text-sm text-gray-600';
-                                diajukanCell.textContent = pinjaman.diajukan_oleh ? pinjaman.diajukan_oleh.name : 'N/A';
-                                row.appendChild(diajukanCell);
-
-                                // Divalidasi Oleh
-                                const divalidasiCell = document.createElement('div');
-                                divalidasiCell.className = 'w-1/5 text-sm text-gray-600';
-                                divalidasiCell.textContent = pinjaman.divalidasi_oleh ? pinjaman.divalidasi_oleh.name : 'N/A';
-                                row.appendChild(divalidasiCell);
 
                                 // Status
                                 const statusCell = document.createElement('div');
-                                statusCell.className = 'w-1/5 text-center';
+                                statusCell.className = 'w-1/4 text-center';
                                 const statusBadge = document.createElement('span');
                                 statusBadge.className = 'px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full';
                                 statusBadge.textContent = pinjaman.status.charAt(0).toUpperCase() + pinjaman.status.slice(1);
@@ -121,8 +113,8 @@
                                     statusBadge.classList.add('bg-green-100', 'text-green-800');
                                 } else if (pinjaman.status === 'ditolak') {
                                     statusBadge.classList.add('bg-red-100', 'text-red-800');
-                                } else { // Seharusnya tidak terjadi di riwayat, tapi jaga-jaga
-                                    statusBadge.classList.add('bg-gray-100', 'text-gray-800');
+                                } else {
+                                    statusBadge.classList.add('bg-yellow-100', 'text-yellow-800');
                                 }
                                 statusCell.appendChild(statusBadge);
                                 row.appendChild(statusCell);
@@ -130,10 +122,10 @@
                                 riwayatListDiv.appendChild(row);
                             });
                         } else {
-                            riwayatListDiv.innerHTML = '<div class="text-center py-4 text-gray-500">Nasabah ini belum memiliki riwayat validasi pinjaman.</div>';
+                            riwayatListDiv.innerHTML = '<div class="text-center py-4 text-gray-500">Nasabah ini belum memiliki riwayat pinjaman.</div>';
                         }
                         
-                        resultArea.classList.remove('hidden'); // Tampilkan hasil
+                        resultArea.classList.remove('hidden'); // Tampilkan area hasil
                     } else {
                         searchFeedback.textContent = data.message || 'Gagal mengambil data.';
                         searchFeedback.className = 'mb-4 text-sm text-red-600';

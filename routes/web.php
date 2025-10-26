@@ -58,6 +58,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     
     // Riwayat Pinjaman
     Route::get('/riwayat-pinjaman', [AdminValidasiController::class, 'riwayatPinjaman'])->name('riwayat.pinjaman');
+    Route::get('/search/nik-riwayat', [AdminValidasiController::class, 'searchNikRiwayatAdmin'])->name('search.nik.riwayat');
 });
 
 
@@ -77,11 +78,15 @@ Route::middleware(['auth', 'role:karyawan'])->group(function () {
     
     Route::get('/pinjaman', [PinjamanController::class, 'index'])->name('pinjaman.index');
     Route::resource('anggota', AnggotaController::class);
-
+    Route::get('/anggota/search/nik', [AnggotaController::class, 'searchByNik'])->name('anggota.search.nik');
     
     Route::get('/karyawans/absensi', function() {
         return view('karyawans.absensi');
     })->name('karyawans.absensi');
+
+    Route::get('/riwayat-pinjaman/cari', [AnggotaController::class, 'showSearchRiwayatForm'])->name('anggota.riwayat.search.form');
+    // Route untuk menangani pencarian AJAX (mirip sebelumnya)
+    Route::get('/anggota/search/nik-riwayat', [AnggotaController::class, 'searchNikRiwayat'])->name('anggota.search.nik.riwayat');
 });
 
 // Memuat semua route otentikasi (login, register, dll.)

@@ -107,4 +107,28 @@ class AdminValidasiController extends Controller
 
         return redirect()->route('admin.validasi.pinjaman.index')->with('success', 'Pengajuan pinjaman telah ditolak.');
     }
+
+    public function searchNikRiwayatAdmin(Request $request)
+{
+    $request->validate(['nik' => 'required|string']);
+    $nik = $request->input('nik');
+
+    $anggota = Anggota::where('no_ktp', $nik)->first();
+
+    if (!$anggota) {
+        return response()->json(['success' => false, 'message' => 'Nasabah dengan NIK tersebut tidak ditemukan.'], 404);
+    }
+
+    $riwayatPinjaman = Pinjaman::where('anggota_id', $anggota->id)
+                            ->where('status', '!=', 'pending')
+                            ->with(['diajukanOleh:id,name', 'divalidasiOleh:id,name'])
+                            ->latest('tanggal_validasi')
+                            ->get();
+
+    return response()->json([
+        'success' => true,
+        'anggota' => $anggota,
+        'riwayat' => $riwayatPinjaman
+    ]);
+}
 }

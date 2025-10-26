@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Anggota;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Models\Pinjaman; // <-- TAMBAHKAN BARIS INI
 
 class AnggotaController extends Controller
 {
@@ -36,17 +37,62 @@ class AnggotaController extends Controller
         ]);
 
         Anggota::create([
-            // Menggunakan array_merge untuk menggabungkan data request
-            // dengan data yang kita set secara manual
             ...$request->all(),
             'dibuat_oleh_user_id' => Auth::id(),
-            'status' => 'pending', // Status awal adalah 'pending'
-            'kode_anggota' => 'KOP-' . now()->timestamp, // Contoh kode unik
+            'status' => 'pending',
+            'kode_anggota' => 'KOP-' . now()->timestamp,
             'tanggal_bergabung' => now(),
         ]);
 
         return redirect()->route('anggota.index')->with('success', 'Pengajuan data nasabah baru berhasil dikirim ke Admin.');
     }
 
-    // Anda bisa melengkapi method edit, update, destroy nanti
+    
+    public function searchByNik(Request $request)
+    {
+        $request->validate(['nik' => 'required|string']);
+        $nik = $request->input('nik');
+
+        $anggota = Anggota::where('no_ktp', $nik)
+                          ->where('status', 'disetujui')
+                          ->first(['id', 'nama']);
+
+        if ($anggota) {
+            return response()->json(['success' => true, 'anggota' => $anggota]);
+        } else {
+            return response()->json(['success' => false, 'message' => 'Nasabah dengan NIK tersebut tidak ditemukan atau belum disetujui.'], 404);
+        }
+    }
+
+    public function showSearchRiwayatForm()
+    {
+        return view('karyawans.anggota.search_riwayat');
+    }
+
+    /**
+     * Mencari anggota berdasarkan NIK dan mengembalikan riwayat pinjamannya.
+     */
+    public function searchNikRiwayat(Request $request)
+    {
+        $request->validate(['nik' => 'required|string']);
+        $nik = $request->input('nik');
+
+        $anggota = Anggota::where('no_ktp', $nik)->first();
+
+        if (!$anggota) {
+            return response()->json(['success' => false, 'message' => 'Nasabah dengan NIK tersebut tidak ditemukan.'], 404);
+        }
+
+        // Kode ini sekarang akan berfungsi karena Model Pinjaman sudah diimpor
+        $riwayatPinjaman = Pinjaman::where('anggota_id', $anggota->id)
+                                ->with(['diajukanOleh', 'divalidasiOleh'])
+                                ->latest('tanggal_pengajuan')
+                                ->get(); 
+
+        return response()->json([
+            'success' => true,
+            'anggota' => $anggota,
+            'riwayat' => $riwayatPinjaman
+        ]);
+    }
 }

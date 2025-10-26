@@ -26,7 +26,7 @@ class PinjamanController extends Controller
     {
         $request->validate([
             'anggota_id' => 'required|exists:anggota,id',
-            'jumlah_pinjaman' => 'required|numeric|min:100000',
+            'jumlah_pinjaman' => 'required|numeric|min:100000|max:20000000',
             'tenor_bulan' => 'required|integer|min:1',
             'tujuan' => 'required|string',
         ]);
