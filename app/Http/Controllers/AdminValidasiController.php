@@ -81,18 +81,25 @@ class AdminValidasiController extends Controller
      * Memproses persetujuan pinjaman.
      */
     public function setujuiPinjaman(Request $request, Pinjaman $pinjaman)
-    {
-        $request->validate(['jumlah_disetujui' => 'required|numeric|min:0']);
+{
+    $request->validate(['jumlah_disetujui' => 'required|numeric|min:0']);
 
-        $pinjaman->update([
-            'status' => 'disetujui',
-            'divalidasi_oleh_user_id' => Auth::id(),
-            'jumlah_disetujui' => $request->jumlah_disetujui,
-            'tanggal_validasi' => now(),
-        ]);
+    // Baca jumlah pinjaman awal SEBELUM update
+    $jumlahAwalPinjaman = $pinjaman->jumlah_pinjaman;
+    $jumlahDisetujui = $request->jumlah_disetujui;
 
-        return redirect()->route('admin.validasi.pinjaman.index')->with('success', 'Pengajuan pinjaman berhasil disetujui.');
-    }
+    // Lakukan update
+    $pinjaman->update([
+        'status' => 'disetujui',
+        'divalidasi_oleh_user_id' => Auth::id(),
+        'jumlah_disetujui' => $jumlahDisetujui,
+        // Gunakan variabel yang sudah dibaca sebelumnya
+        'sisa_hutang' => $jumlahAwalPinjaman, // <-- Defaultnya adalah jumlah pinjaman awal
+        'tanggal_validasi' => now(),
+    ]);
+
+    return redirect()->route('admin.validasi.pinjaman.index')->with('success', 'Pengajuan pinjaman berhasil disetujui.');
+}
 
     /**
      * Memproses penolakan pinjaman.

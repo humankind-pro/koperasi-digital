@@ -6,7 +6,8 @@ use App\Http\Controllers\KaryawanController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PinjamanController;
 use App\Http\Controllers\AnggotaController;
-use App\Http\Controllers\AdminValidasiController; 
+use App\Http\Controllers\AdminValidasiController;
+use App\Http\Controllers\PembayaranController;
 
 
 /*
@@ -38,6 +39,10 @@ Route::middleware(['auth', 'role:super_admin'])->group(function () {
     // Route resource untuk CRUD Admin
     Route::resource('admins', AdminController::class);
     Route::resource('karyawans', KaryawanController::class);
+    Route::get('/anggota/manage', [AnggotaController::class, 'indexForSuperAdmin'])->name('superadmin.anggota.index');
+    Route::get('/anggota/{anggota}/edit', [AnggotaController::class, 'edit'])->name('superadmin.anggota.edit');
+    Route::put('/anggota/{anggota}', [AnggotaController::class, 'update'])->name('superadmin.anggota.update');
+    Route::delete('/anggota/{anggota}', [AnggotaController::class, 'destroy'])->name('superadmin.anggota.destroy');
 });
 
 
@@ -84,5 +89,8 @@ Route::middleware(['auth', 'role:karyawan'])->group(function () {
     // Route untuk menangani pencarian AJAX (mirip sebelumnya)
     Route::get('/anggota/search/nik-riwayat', [AnggotaController::class, 'searchNikRiwayat'])->name('anggota.search.nik.riwayat');
 });
+
+Route::get('/pinjaman-aktif', [PembayaranController::class, 'indexPinjamanAktif'])->name('karyawan.pinjaman.aktif');
+    Route::post('/pembayaran', [PembayaranController::class, 'storePembayaran'])->name('karyawan.pembayaran.store');
 
 require __DIR__.'/auth.php';
