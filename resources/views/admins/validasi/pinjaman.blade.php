@@ -18,9 +18,6 @@
                                     <p class="text-xs text-gray-500">Diajukan oleh: {{ $pinjaman->diajukanOleh->name ?? 'N/A' }}</p>
                                 </div>
                                 <div class="mt-4 md:mt-0 flex items-center space-x-2">
-                                    {{-- =============================================================== --}}
-                                    {{-- PERBAIKAN DI SINI --}}
-                                    {{-- =============================================================== --}}
                                     <form action="{{ route('admin.validasi.pinjaman.setujui', $pinjaman->id) }}" method="POST">
                                         @csrf
                                         @method('PATCH')

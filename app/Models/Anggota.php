@@ -11,7 +11,7 @@ class Anggota extends Model
 
     protected $table = 'anggota';
 
-    // app/Models/Anggota.php
+
 
 protected $fillable = [
     'kode_anggota',
@@ -23,8 +23,8 @@ protected $fillable = [
     'pendapatan_bulanan',
     'tanggal_bergabung',
     'dibuat_oleh_user_id',
-    'status', // <-- Tambahkan ini
-    'divalidasi_oleh_user_id', // <-- Tambahkan ini
+    'status', 
+    'divalidasi_oleh_user_id', 
 ];
 public function dibuatOleh()
 {

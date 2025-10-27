@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Anggota;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Models\Pinjaman; // <-- TAMBAHKAN BARIS INI
+use App\Models\Pinjaman; 
 
 class AnggotaController extends Controller
 {

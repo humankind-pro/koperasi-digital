@@ -10,10 +10,7 @@ class Pinjaman extends Model
     use HasFactory;
     protected $table = 'pinjaman';
 
-    /**
-     * INI ADALAH SOLUSI UTAMA ANDA
-     * Memastikan semua kolom yang ingin diisi atau diubah ada di sini.
-     */
+
     protected $fillable = [
         'anggota_id',
         'diajukan_oleh_user_id',

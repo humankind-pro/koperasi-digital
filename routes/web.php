@@ -2,11 +2,11 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AdminController;
-use App\Http\Controllers\KaryawanController; // <-- DITAMBAHKAN
+use App\Http\Controllers\KaryawanController; 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PinjamanController;
 use App\Http\Controllers\AnggotaController;
-use App\Http\Controllers\AdminValidasiController; // <-- Tambahkan ini
+use App\Http\Controllers\AdminValidasiController; 
 
 
 /*
@@ -26,9 +26,7 @@ Route::get('/dashboard', function () {
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 
-// ===============================================================
-// AWAL DARI KODE YANG DIPERBAIKI & DITAMBAHKAN
-// ===============================================================
+
 
 // Grup route khusus untuk Super Admin
 Route::middleware(['auth', 'role:super_admin'])->group(function () {
@@ -42,9 +40,7 @@ Route::middleware(['auth', 'role:super_admin'])->group(function () {
     Route::resource('karyawans', KaryawanController::class);
 });
 
-// ===============================================================
-// AKHIR DARI KODE YANG DIPERBAIKI & DITAMBAHKAN
-// ===============================================================
+
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
     // Validasi Nasabah
     Route::get('/validasi/nasabah', [AdminValidasiController::class, 'index'])->name('validasi.nasabah.index');
@@ -89,5 +85,4 @@ Route::middleware(['auth', 'role:karyawan'])->group(function () {
     Route::get('/anggota/search/nik-riwayat', [AnggotaController::class, 'searchNikRiwayat'])->name('anggota.search.nik.riwayat');
 });
 
-// Memuat semua route otentikasi (login, register, dll.)
 require __DIR__.'/auth.php';

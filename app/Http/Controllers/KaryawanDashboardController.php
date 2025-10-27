@@ -4,8 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Models\Pinjaman; // Pastikan Anda sudah punya model Pinjaman
-
+use App\Models\Pinjaman; 
 class KaryawanDashboardController extends Controller
 {
     /**
