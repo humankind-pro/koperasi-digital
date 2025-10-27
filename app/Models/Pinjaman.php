@@ -27,8 +27,13 @@ class Pinjaman extends Model
         'tanggal_pengajuan',
         'tanggal_validasi',       // <-- WAJIB ADA
         'catatan',
+        'original_anggota_id',
+        'ditransfer_oleh_user_id',
+        'tanggal_transfer',
+        'alasan_transfer',
     ];
 
+    
     // ... (Relasi) ...
     public function anggota() { return $this->belongsTo(Anggota::class, 'anggota_id'); }
     public function diajukanOleh() { return $this->belongsTo(User::class, 'diajukan_oleh_user_id'); }

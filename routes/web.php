@@ -60,6 +60,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     // Riwayat Pinjaman
     Route::get('/riwayat-pinjaman', [AdminValidasiController::class, 'riwayatPinjaman'])->name('riwayat.pinjaman');
     Route::get('/search/nik-riwayat', [AdminValidasiController::class, 'searchNikRiwayatAdmin'])->name('search.nik.riwayat');
+    Route::patch('/pinjaman/{pinjaman}/transfer', [AdminValidasiController::class, 'transferPinjaman'])->name('pinjaman.transfer');
 });
 
 

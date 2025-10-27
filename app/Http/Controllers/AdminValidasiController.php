@@ -53,15 +53,19 @@ class AdminValidasiController extends Controller
      * Menampilkan riwayat semua pinjaman yang telah divalidasi.
      */
     public function riwayatPinjaman()
-    {
-        // Menggunakan whereRaw untuk menghapus spasi sebelum membandingkan
-        $riwayatValidasi = Pinjaman::whereRaw("TRIM(status) != 'pending'")
-                                ->with(['anggota', 'diajukanOleh', 'divalidasiOleh'])
-                                ->latest('updated_at')
-                                ->paginate(15);
+{
+    $riwayatValidasi = Pinjaman::where('status', '!=', 'pending')
+                            ->with(['anggota', 'diajukanOleh', 'divalidasiOleh'])
+                            ->latest('updated_at')
+                            ->paginate(15);
 
-        return view('admins.riwayat.pinjaman', compact('riwayatValidasi'));
-    }
+    // Ambil SEMUA anggota yang disetujui untuk dropdown modal
+    $semuaAnggotaDisetujui = Anggota::where('status', 'disetujui')
+                                    ->orderBy('nama')
+                                    ->get(['id', 'nama', 'no_ktp']);
+
+    return view('admins.riwayat.pinjaman', compact('riwayatValidasi', 'semuaAnggotaDisetujui'));
+}
 
     /**
      * Menampilkan daftar pengajuan pinjaman yang 'pending'.
@@ -138,4 +142,36 @@ class AdminValidasiController extends Controller
         'riwayat' => $riwayatPinjaman
     ]);
 }
+
+public function transferPinjaman(Request $request, Pinjaman $pinjaman)
+    {
+        $request->validate([
+            'new_anggota_id' => 'required|exists:anggota,id',
+            'alasan_transfer' => 'nullable|string',
+        ]);
+
+        // Pastikan pinjaman yang ditransfer adalah pinjaman aktif
+        if ($pinjaman->status !== 'disetujui') {
+            return back()->with('error', 'Hanya pinjaman yang sedang berjalan (disetujui) yang bisa dipindahkan.');
+        }
+
+        // Pastikan tidak mentransfer ke anggota yang sama
+        if ($pinjaman->anggota_id == $request->new_anggota_id) {
+             return back()->with('error', 'Tidak bisa mentransfer pinjaman ke nasabah yang sama.');
+        }
+
+        // Simpan ID anggota asli jika belum ada (opsional)
+        $originalAnggotaId = $pinjaman->original_anggota_id ?? $pinjaman->anggota_id;
+
+        // Update pinjaman
+        $pinjaman->update([
+            'anggota_id' => $request->new_anggota_id,
+            'original_anggota_id' => $originalAnggotaId, // Simpan ID asli
+            'ditransfer_oleh_user_id' => Auth::id(),
+            'tanggal_transfer' => now(),
+            'alasan_transfer' => $request->alasan_transfer,
+        ]);
+
+        return redirect()->route('admin.riwayat.pinjaman')->with('success', 'Pinjaman berhasil dipindahkan ke nasabah baru.');
+    }
 }
