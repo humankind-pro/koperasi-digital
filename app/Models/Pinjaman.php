@@ -31,6 +31,7 @@ class Pinjaman extends Model
         'ditransfer_oleh_user_id',
         'tanggal_transfer',
         'alasan_transfer',
+        'tenggat_berikutnya',
     ];
 
     

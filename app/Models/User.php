@@ -21,7 +21,8 @@ class User extends Authenticatable
     'name',
     'email',
     'password',
-    'role', // <-- TAMBAHKAN INI
+    'role',
+    'fingerprint_id', // <-- TAMBAHKAN INI
 ];
     /**
      * The attributes that should be hidden for serialization.

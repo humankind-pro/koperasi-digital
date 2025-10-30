@@ -50,7 +50,7 @@
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v.01M12 6v-1m0-1V4m0 2.01V4m0 2.01V4M12 14c-1.657 0-3-.895-3-2s1.343-2 3-2 3-.895 3-2-1.343-2-3-2m0 8c1.11 0 2.08-.402 2.599-1M12 14v1m0-1v-.01m0-2.01V12m0-2.01V10m0 2.01V10"></path></svg>
                             Cek Riwayat
                         </a>
-                        <a href="{{ route('karyawans.absensi') }}" class="inline-flex items-center px-3 py-2 text-sm font-medium leading-5 text-white hover:bg-cyan-600 rounded-lg ...">
+                        <a href="{{ route('karyawan.absensi') }}" class="inline-flex items-center px-3 py-2 text-sm font-medium leading-5 text-white hover:bg-cyan-600 rounded-lg ...">
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                             Absensi
                         </a>

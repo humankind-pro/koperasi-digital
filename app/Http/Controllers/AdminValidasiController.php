@@ -88,18 +88,18 @@ class AdminValidasiController extends Controller
 {
     $request->validate(['jumlah_disetujui' => 'required|numeric|min:0']);
 
-    // Baca jumlah pinjaman awal SEBELUM update
     $jumlahAwalPinjaman = $pinjaman->jumlah_pinjaman;
     $jumlahDisetujui = $request->jumlah_disetujui;
+    $tanggalValidasi = now();
 
-    // Lakukan update
     $pinjaman->update([
         'status' => 'disetujui',
         'divalidasi_oleh_user_id' => Auth::id(),
         'jumlah_disetujui' => $jumlahDisetujui,
-        // Gunakan variabel yang sudah dibaca sebelumnya
-        'sisa_hutang' => $jumlahAwalPinjaman, // <-- Defaultnya adalah jumlah pinjaman awal
-        'tanggal_validasi' => now(),
+        'sisa_hutang' => $jumlahAwalPinjaman,
+        'tanggal_validasi' => $tanggalValidasi,
+        // SET TENGGAT PERTAMA: 30 hari dari sekarang
+        'tenggat_berikutnya' => $tanggalValidasi->copy()->addMonths(2), // <-- Tambahkan ini
     ]);
 
     return redirect()->route('admin.validasi.pinjaman.index')->with('success', 'Pengajuan pinjaman berhasil disetujui.');
@@ -132,7 +132,11 @@ class AdminValidasiController extends Controller
 
     $riwayatPinjaman = Pinjaman::where('anggota_id', $anggota->id)
                             ->where('status', '!=', 'pending')
-                            ->with(['diajukanOleh:id,name', 'divalidasiOleh:id,name'])
+                            ->with([
+                                'diajukanOleh:id,name',
+                                'divalidasiOleh:id,name',
+                                'pembayaran' // <-- Tambahkan ini untuk mengambil riwayat pembayaran
+                            ])
                             ->latest('tanggal_validasi')
                             ->get();
 

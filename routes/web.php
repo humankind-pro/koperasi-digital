@@ -8,6 +8,7 @@ use App\Http\Controllers\PinjamanController;
 use App\Http\Controllers\AnggotaController;
 use App\Http\Controllers\AdminValidasiController;
 use App\Http\Controllers\PembayaranController;
+use App\Http\Controllers\AbsensiController;
 
 
 /*
@@ -82,9 +83,7 @@ Route::middleware(['auth', 'role:karyawan'])->group(function () {
     Route::resource('anggota', AnggotaController::class);
     Route::get('/anggota/search/nik', [AnggotaController::class, 'searchByNik'])->name('anggota.search.nik');
     
-    Route::get('/karyawans/absensi', function() {
-        return view('karyawans.absensi');
-    })->name('karyawans.absensi');
+    Route::get('/karyawan/absensi', [AbsensiController::class, 'index'])->name('karyawan.absensi');
 
     Route::get('/riwayat-pinjaman/cari', [AnggotaController::class, 'showSearchRiwayatForm'])->name('anggota.riwayat.search.form');
     // Route untuk menangani pencarian AJAX (mirip sebelumnya)

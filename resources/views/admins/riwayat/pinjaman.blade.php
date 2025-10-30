@@ -23,22 +23,13 @@
 
                     {{-- Area untuk Menampilkan Hasil (Awalnya tersembunyi) --}}
                     <div id="result-area" class="mt-8 hidden">
-                        <h4 class="text-lg font-semibold mb-4">Riwayat Pinjaman untuk: <span id="anggota-name" class="text-cyan-600"></span></h4>
+                        <h4 class="text-lg font-semibold mb-4">
+                            Riwayat Pinjaman untuk: <span id="anggota-name" class="text-cyan-600"></span>
+                            <span class="text-base font-medium text-gray-700">(Skor Kredit: <span id="anggota-skor" class="font-bold"></span>)</span>
+                        </h4>
 
-                        <div class="space-y-4">
-                            <div class="flex items-center pb-2 border-b-2 font-semibold text-gray-500 uppercase text-xs">
-                                <div class="w-[18%]">Tgl Validasi</div>
-                                <div class="w-[18%]">Jml Disetujui</div>
-                                <div class="w-[18%]">Diajukan Oleh</div>
-                                <div class="w-[18%]">Divalidasi Oleh</div>
-                                <div class="w-[14%] text-center">Status</div>
-                                <div class="w-[14%] text-right">Aksi</div>
-                            </div>
-
-                            {{-- Konten Riwayat (diisi oleh JS) --}}
-                            <div id="riwayat-list">
-                                {{-- Data riwayat akan dimasukkan di sini oleh JavaScript --}}
-                            </div>
+                        <div id="riwayat-list" class="space-y-3">
+                            {{-- Data riwayat akan dimasukkan di sini oleh JavaScript --}}
                         </div>
                     </div>
 
@@ -65,7 +56,7 @@
                     <label for="new_anggota_id" class="block font-medium text-gray-700">Pindahkan Ke Nasabah:</label>
                     <select name="new_anggota_id" id="new_anggota_id" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required>
                         <option value="">-- Pilih Nasabah Tujuan --</option>
-                        {{-- Opsi akan diisi oleh JS --}}
+                        {{-- Opsi akan diisi oleh JS dari variabel 'semuaAnggotaList' --}}
                     </select>
                 </div>
                  <div>
@@ -89,137 +80,22 @@
 
     @push('scripts')
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const searchButton = document.getElementById('search-button');
-            const nikInput = document.getElementById('nik_search');
-            const searchFeedback = document.getElementById('search-feedback');
-            const resultArea = document.getElementById('result-area');
-            const anggotaNameEl = document.getElementById('anggota-name');
-            const riwayatListDiv = document.getElementById('riwayat-list');
-
-            searchButton.addEventListener('click', function () {
-                const nik = nikInput.value.trim();
-                searchFeedback.textContent = '';
-                resultArea.classList.add('hidden');
-                riwayatListDiv.innerHTML = ''; // Kosongkan riwayat
-
-                if (!nik) {
-                    searchFeedback.textContent = 'Silakan masukkan NIK.';
-                    searchFeedback.className = 'mb-4 text-sm text-red-600';
-                    return;
-                }
-
-                searchFeedback.textContent = 'Mencari...';
-                searchFeedback.className = 'mb-4 text-sm text-gray-500';
-
-                // Panggil route pencarian NIK Admin
-                fetch(`{{ route('admin.search.nik.riwayat') }}?nik=${nik}`, {
-                    method: 'GET',
-                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        searchFeedback.textContent = '';
-                        anggotaNameEl.textContent = data.anggota.nama;
-
-                        if (data.riwayat && data.riwayat.length > 0) {
-                            data.riwayat.forEach(pinjaman => {
-                                const row = document.createElement('div');
-                                row.className = 'flex items-center py-3 border-b';
-
-                                // Tgl Validasi
-                                const tglCell = document.createElement('div');
-                                tglCell.className = 'w-[18%] text-sm text-gray-600';
-                                tglCell.textContent = pinjaman.tanggal_validasi ? new Date(pinjaman.tanggal_validasi).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
-                                row.appendChild(tglCell);
-
-                                // Jumlah Disetujui
-                                const jmlSetujuCell = document.createElement('div');
-                                jmlSetujuCell.className = 'w-[18%] text-sm text-gray-600';
-                                jmlSetujuCell.textContent = pinjaman.status === 'disetujui' ? `Rp ${parseInt(pinjaman.jumlah_disetujui).toLocaleString('id-ID')}` : '-';
-                                row.appendChild(jmlSetujuCell);
-
-                                // Diajukan Oleh
-                                const diajukanCell = document.createElement('div');
-                                diajukanCell.className = 'w-[18%] text-sm text-gray-600';
-                                diajukanCell.textContent = pinjaman.diajukan_oleh ? pinjaman.diajukan_oleh.name : 'N/A';
-                                row.appendChild(diajukanCell);
-
-                                // Divalidasi Oleh
-                                const divalidasiCell = document.createElement('div');
-                                divalidasiCell.className = 'w-[18%] text-sm text-gray-600';
-                                divalidasiCell.textContent = pinjaman.divalidasi_oleh ? pinjaman.divalidasi_oleh.name : 'N/A';
-                                row.appendChild(divalidasiCell);
-
-                                // Status
-                                const statusCell = document.createElement('div');
-                                statusCell.className = 'w-[14%] text-center';
-                                const statusBadge = document.createElement('span');
-                                statusBadge.className = 'px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full';
-                                statusBadge.textContent = pinjaman.status.charAt(0).toUpperCase() + pinjaman.status.slice(1);
-                                if (pinjaman.status === 'disetujui') {
-                                    statusBadge.classList.add('bg-green-100', 'text-green-800');
-                                } else if (pinjaman.status === 'ditolak') {
-                                    statusBadge.classList.add('bg-red-100', 'text-red-800');
-                                } else {
-                                    statusBadge.classList.add('bg-gray-100', 'text-gray-800');
-                                }
-                                statusCell.appendChild(statusBadge);
-                                row.appendChild(statusCell);
-
-                                // Kolom Aksi (Tombol Transfer)
-                                const aksiCell = document.createElement('div');
-                                aksiCell.className = 'w-[14%] text-right';
-
-                                if (pinjaman.status === 'disetujui') {
-                                    const transferButton = document.createElement('button');
-                                    transferButton.type = 'button';
-                                    transferButton.className = 'px-3 py-1 text-xs font-medium text-white bg-orange-500 rounded hover:bg-orange-600';
-                                    transferButton.textContent = 'Transfer';
-                                    const currentAnggotaName = data.anggota ? data.anggota.nama : 'Nasabah Ini';
-                                    transferButton.onclick = function() {
-                                        openTransferModal(pinjaman.id, currentAnggotaName);
-                                    };
-                                    aksiCell.appendChild(transferButton);
-                                }
-                                row.appendChild(aksiCell);
-
-                                riwayatListDiv.appendChild(row);
-                            });
-                        } else {
-                            riwayatListDiv.innerHTML = '<div class="text-center py-4 text-gray-500">Nasabah ini belum memiliki riwayat validasi pinjaman.</div>';
-                        }
-
-                        resultArea.classList.remove('hidden'); // Tampilkan hasil
-                    } else {
-                        searchFeedback.textContent = data.message || 'Gagal mengambil data.';
-                        searchFeedback.className = 'mb-4 text-sm text-red-600';
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    searchFeedback.textContent = 'Terjadi kesalahan. Coba lagi.';
-                    searchFeedback.className = 'mb-4 text-sm text-red-600';
-                });
-            });
-        });
-
         // ===============================================
-        // JAVASCRIPT UNTUK MODAL TRANSFER
+        // Variabel dan Fungsi untuk MODAL TRANSFER
         // ===============================================
         const transferModal = document.getElementById('transferModal');
         const transferForm = document.getElementById('transferForm');
         const modalPinjamanIdInput = document.getElementById('modal-transfer-pinjaman-id');
         const modalCurrentAnggotaSpan = document.getElementById('modal-current-anggota');
         const newAnggotaSelect = document.getElementById('new_anggota_id');
-        // Data anggota disetujui di-pass dari Controller
+        
+        // Mengambil data anggota dari Controller (PHP)
         let semuaAnggotaList = @json($semuaAnggotaDisetujui ?? []);
 
         function openTransferModal(pinjamanId, currentAnggotaName) {
             modalPinjamanIdInput.value = pinjamanId;
             modalCurrentAnggotaSpan.textContent = currentAnggotaName;
-            transferForm.action = `/admin/pinjaman/${pinjamanId}/transfer`; // Sesuaikan URL jika perlu
+            transferForm.action = `/admin/pinjaman/${pinjamanId}/transfer`; // Pastikan route ini ada
 
             // Isi dropdown, kecualikan anggota saat ini
             newAnggotaSelect.innerHTML = '<option value="">-- Pilih Nasabah Tujuan --</option>'; // Reset
@@ -239,7 +115,145 @@
         function closeTransferModal() {
             transferModal.classList.add('hidden');
         }
+        
         // ===============================================
+        // Variabel dan Fungsi untuk PENCARIAN NIK
+        // ===============================================
+        document.addEventListener('DOMContentLoaded', function () {
+            const searchButton = document.getElementById('search-button');
+            const nikInput = document.getElementById('nik_search');
+            const searchFeedback = document.getElementById('search-feedback');
+            const resultArea = document.getElementById('result-area');
+            const anggotaNameEl = document.getElementById('anggota-name');
+            const riwayatListDiv = document.getElementById('riwayat-list');
+            const anggotaSkorEl = document.getElementById('anggota-skor');
+
+            searchButton.addEventListener('click', function () {
+                const nik = nikInput.value.trim();
+                searchFeedback.textContent = '';
+                resultArea.classList.add('hidden');
+                riwayatListDiv.innerHTML = ''; // Kosongkan riwayat
+
+                if (!nik) {
+                    searchFeedback.textContent = 'Silakan masukkan NIK.';
+                    searchFeedback.className = 'mb-4 text-sm text-red-600';
+                    return;
+                }
+
+                searchFeedback.textContent = 'Mencari...';
+                searchFeedback.className = 'mb-4 text-sm text-gray-500';
+
+                fetch(`{{ route('admin.search.nik.riwayat') }}?nik=${nik}`, {
+                    method: 'GET',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        searchFeedback.textContent = '';
+                        anggotaNameEl.textContent = data.anggota.nama;
+                        
+                        // Logika Skor Kredit (Rendah = Bagus)
+                        anggotaSkorEl.textContent = data.anggota.skor_kredit;
+                        if (data.anggota.skor_kredit < 70) {
+    anggotaSkorEl.className = 'font-bold text-red-500'; // Skor rendah = merah
+} else if (data.anggota.skor_kredit < 90) {
+    anggotaSkorEl.className = 'font-bold text-yellow-500'; // Skor sedang = kuning
+} else {
+    anggotaSkorEl.className = 'font-bold text-green-500'; // Skor 90-100 = hijau
+}
+
+                        if (data.riwayat && data.riwayat.length > 0) {
+                            data.riwayat.forEach(pinjaman => {
+                                // 1. Buat Card Utama
+                                const card = document.createElement('div');
+                                card.className = 'bg-white shadow border border-gray-200 rounded-lg overflow-hidden';
+
+                                // 2. Buat Header Card (yang bisa diklik)
+                                const cardHeader = document.createElement('div');
+                                cardHeader.className = 'p-4 cursor-pointer hover:bg-gray-50';
+                                
+                                const tglValidasi = pinjaman.tanggal_validasi ? new Date(pinjaman.tanggal_validasi).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
+                                const jmlSetuju = pinjaman.status === 'disetujui' ? `Rp ${parseInt(pinjaman.jumlah_disetujui).toLocaleString('id-ID')}` : '-';
+                                let statusClass = pinjaman.status === 'disetujui' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
+                                let statusText = pinjaman.status.charAt(0).toUpperCase() + pinjaman.status.slice(1);
+                                
+                                cardHeader.innerHTML = `
+                                    <div class="flex justify-between items-center">
+                                        <div>
+                                            <p class="text-sm text-gray-500">Divalidasi: ${tglValidasi}</p>
+                                            <p class="font-semibold text-gray-800">Jumlah: ${jmlSetuju}</p>
+                                        </div>
+                                        <div class="text-right">
+                                            <span class="px-2 py-1 text-xs font-semibold rounded-full ${statusClass}">${statusText}</span>
+                                            <span class="text-xs text-gray-400 block mt-1">Klik untuk lihat riwayat bayar ▼</span>
+                                        </div>
+                                    </div>
+                                `;
+
+                                // 3. Buat Body Card (Riwayat Pembayaran, awalnya tersembunyi)
+                                const cardBody = document.createElement('div');
+                                cardBody.className = 'p-4 bg-gray-50 border-t border-gray-200 hidden'; // <-- 'hidden' by default
+                                
+                                let paymentsHTML = '<h5 class="font-semibold mb-2 text-sm text-gray-700">Riwayat Pembayaran:</h5>';
+                                if (pinjaman.pembayaran && pinjaman.pembayaran.length > 0) {
+                                    paymentsHTML += '<ul class="list-disc list-inside space-y-1 text-sm">';
+                                    pinjaman.pembayaran.forEach(pembayaran => {
+                                        const tglBayar = new Date(pembayaran.tanggal_bayar).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+                                        const jmlBayar = `Rp ${parseInt(pembayaran.jumlah_bayar).toLocaleString('id-ID')}`;
+                                        paymentsHTML += `<li><strong>${tglBayar}</strong>: ${jmlBayar}</li>`;
+                                    });
+                                    paymentsHTML += '</ul>';
+                                } else {
+                                    paymentsHTML += '<p class="text-sm text-gray-500">Belum ada riwayat pembayaran.</p>';
+                                }
+                                cardBody.innerHTML = paymentsHTML;
+
+                                // 4. Tambahkan event listener untuk toggle
+                                cardHeader.addEventListener('click', () => {
+                                    cardBody.classList.toggle('hidden');
+                                });
+                                
+                                // 5. Buat Footer Card (Untuk Tombol Transfer)
+                                const cardFooter = document.createElement('div');
+                                cardFooter.className = 'p-4 bg-gray-50 border-t border-gray-200 text-right';
+
+                                if (pinjaman.status === 'disetujui' && pinjaman.sisa_hutang > 0) {
+                                    const transferButton = document.createElement('button');
+                                    transferButton.type = 'button';
+                                    transferButton.className = 'px-3 py-1 text-xs font-medium text-white bg-orange-500 rounded hover:bg-orange-600';
+                                    transferButton.textContent = 'Transfer Pinjaman';
+                                    const currentAnggotaName = data.anggota ? data.anggota.nama : 'Nasabah Ini';
+                                    transferButton.onclick = function() {
+                                        openTransferModal(pinjaman.id, currentAnggotaName);
+                                    };
+                                    cardFooter.appendChild(transferButton);
+                                }
+
+                                // 6. Gabungkan
+                                card.appendChild(cardHeader);
+                                card.appendChild(cardBody);
+                                if (cardFooter.hasChildNodes()) {
+                                    card.appendChild(cardFooter);
+                                }
+                                riwayatListDiv.appendChild(card);
+                            });
+                        } else {
+                            riwayatListDiv.innerHTML = '<div class="text-center py-4 text-gray-500">Nasabah ini belum memiliki riwayat validasi pinjaman.</div>';
+                        }
+                        resultArea.classList.remove('hidden');
+                    } else {
+                        searchFeedback.textContent = data.message || 'Gagal mengambil data.';
+                        searchFeedback.className = 'mb-4 text-sm text-red-600';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    searchFeedback.textContent = 'Terjadi kesalahan. Coba lagi.';
+                    searchFeedback.className = 'mb-4 text-sm text-red-600';
+                });
+            });
+        });
     </script>
     @endpush
 </x-app-layout>

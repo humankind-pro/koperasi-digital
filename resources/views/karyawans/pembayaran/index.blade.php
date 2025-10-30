@@ -22,9 +22,7 @@
                             <p class="font-bold text-lg text-gray-800">{{ $pinjaman->anggota->nama ?? 'N/A' }}</p>
                             <p class="text-sm text-gray-600">Total Pinjaman: <span class="font-semibold">Rp {{ number_format($pinjaman->jumlah_disetujui, 0, ',', '.') }}</span></p>
 
-                            {{-- =============================================== --}}
                             {{-- LOGIKA SISA HUTANG ATAU LUNAS --}}
-                            {{-- =============================================== --}}
                             @if ($pinjaman->sisa_hutang <= 0)
                                 <span class="mt-1 px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full bg-green-100 text-green-800">
                                     Lunas 🎉
@@ -32,15 +30,24 @@
                             @else
                                 <p class="mt-1 text-sm text-red-600">Sisa Hutang: <span class="font-semibold">Rp {{ number_format($pinjaman->sisa_hutang, 0, ',', '.') }}</span></p>
                             @endif
+                            
+                            {{-- =============================================== --}}
+                            {{-- KODE YANG DIMASUKKAN (TENGGAT BERIKUTNYA) --}}
+                            {{-- =============================================== --}}
+                            @if ($pinjaman->sisa_hutang > 0 && $pinjaman->tenggat_berikutnya)
+                                <p class="mt-1 text-sm text-gray-700">Tenggat Berikutnya: 
+                                    <span class="font-semibold text-red-500">
+                                        {{ \Carbon\Carbon::parse($pinjaman->tenggat_berikutnya)->format('d M Y') }}
+                                    </span>
+                                </p>
+                            @endif
                             {{-- =============================================== --}}
 
                             <p class="mt-2 text-xs text-gray-500">Tenor: {{ $pinjaman->tenor_bulan }} bulan</p>
                             <p class="text-xs text-gray-500">Disetujui: {{ \Carbon\Carbon::parse($pinjaman->tanggal_validasi)->format('d M Y') }}</p>
                         </div>
                         <div class="mt-4 text-right">
-                            {{-- =============================================== --}}
                             {{-- Tampilkan tombol hanya jika belum lunas --}}
-                            {{-- =============================================== --}}
                             @if ($pinjaman->sisa_hutang > 0)
                                 <button type="button"
                                     class="px-4 py-2 bg-blue-500 text-white text-xs font-semibold rounded hover:bg-blue-600"
@@ -50,7 +57,6 @@
                             @else
                                 <span class="text-sm text-gray-500 italic">Sudah Lunas</span>
                             @endif
-                            {{-- =============================================== --}}
                         </div>
                     </div>
                 @empty

@@ -23,7 +23,8 @@ protected $fillable = [
     'pendapatan_bulanan',
     'tanggal_bergabung',
     'dibuat_oleh_user_id',
-    'status', 
+    'status',
+    'skor_kredit', 
     'divalidasi_oleh_user_id', 
 ];
 public function dibuatOleh()
