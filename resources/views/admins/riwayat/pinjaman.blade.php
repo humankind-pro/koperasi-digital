@@ -153,15 +153,15 @@
                         searchFeedback.textContent = '';
                         anggotaNameEl.textContent = data.anggota.nama;
                         
-                        // Logika Skor Kredit (Rendah = Bagus)
+                        // Logika Skor Kredit (100 = Bagus)
                         anggotaSkorEl.textContent = data.anggota.skor_kredit;
                         if (data.anggota.skor_kredit < 70) {
-    anggotaSkorEl.className = 'font-bold text-red-500'; // Skor rendah = merah
-} else if (data.anggota.skor_kredit < 90) {
-    anggotaSkorEl.className = 'font-bold text-yellow-500'; // Skor sedang = kuning
-} else {
-    anggotaSkorEl.className = 'font-bold text-green-500'; // Skor 90-100 = hijau
-}
+                            anggotaSkorEl.className = 'font-bold text-red-500';
+                        } else if (data.anggota.skor_kredit < 90) {
+                            anggotaSkorEl.className = 'font-bold text-yellow-500';
+                        } else {
+                            anggotaSkorEl.className = 'font-bold text-green-500';
+                        }
 
                         if (data.riwayat && data.riwayat.length > 0) {
                             data.riwayat.forEach(pinjaman => {
@@ -191,7 +191,7 @@
                                     </div>
                                 `;
 
-                                // 3. Buat Body Card (Riwayat Pembayaran, awalnya tersembunyi)
+                                // 3. Buat Body Card (Riwayat Pembayaran)
                                 const cardBody = document.createElement('div');
                                 cardBody.className = 'p-4 bg-gray-50 border-t border-gray-200 hidden'; // <-- 'hidden' by default
                                 
@@ -201,7 +201,15 @@
                                     pinjaman.pembayaran.forEach(pembayaran => {
                                         const tglBayar = new Date(pembayaran.tanggal_bayar).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
                                         const jmlBayar = `Rp ${parseInt(pembayaran.jumlah_bayar).toLocaleString('id-ID')}`;
-                                        paymentsHTML += `<li><strong>${tglBayar}</strong>: ${jmlBayar}</li>`;
+                                        
+                                        // Tambahkan link bukti transfer jika ada
+                                        let buktiLink = '';
+                                        if (pembayaran.bukti_transfer_path) {
+                                            const imageUrl = `${window.location.origin}/storage/${pembayaran.bukti_transfer_path}`;
+                                            buktiLink = ` <a href="${imageUrl}" target="_blank" class="ml-2 px-2 py-0.5 text-xs font-medium text-white bg-blue-500 rounded hover:bg-blue-600">Lihat Bukti</a>`;
+                                        }
+
+                                        paymentsHTML += `<li><strong>${tglBayar}</strong>: ${jmlBayar} ${buktiLink}</li>`;
                                     });
                                     paymentsHTML += '</ul>';
                                 } else {

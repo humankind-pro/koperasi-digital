@@ -9,7 +9,7 @@ class Pembayaran extends Model {
     use HasFactory;
     protected $table = 'pembayaran';
     protected $fillable = [
-        'pinjaman_id', 'jumlah_bayar', 'tanggal_bayar', 'diproses_oleh_user_id'
+        'pinjaman_id', 'jumlah_bayar', 'tanggal_bayar', 'diproses_oleh_user_id', 'bukti_transfer_path'
     ];
 
     public function pinjaman() { return $this->belongsTo(Pinjaman::class); }

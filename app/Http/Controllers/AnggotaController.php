@@ -85,7 +85,7 @@ class AnggotaController extends Controller
 
         // Kode ini sekarang akan berfungsi karena Model Pinjaman sudah diimpor
         $riwayatPinjaman = Pinjaman::where('anggota_id', $anggota->id)
-                                ->with(['diajukanOleh', 'divalidasiOleh'])
+                                ->with(['diajukanOleh', 'divalidasiOleh', 'pembayaran'])
                                 ->latest('tanggal_pengajuan')
                                 ->get(); 
 

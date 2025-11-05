@@ -84,7 +84,11 @@
       <h3 class="text-xl font-bold text-gray-900">Catat Pembayaran untuk <span id="modal-anggota-nama"></span></h3>
       <button onclick="closePaymentModal()" class="text-gray-400 hover:text-gray-600 text-2xl font-bold">&times;</button>
     </div>
-    <form id="paymentForm" method="POST" action="{{ route('karyawan.pembayaran.store') }}">
+    
+    {{-- =============================================== --}}
+    {{-- PERUBAHAN DI SINI: tambahkan enctype="multipart/form-data" --}}
+    {{-- =============================================== --}}
+    <form id="paymentForm" method="POST" action="{{ route('karyawan.pembayaran.store') }}" enctype="multipart/form-data">
         @csrf
         <input type="hidden" name="pinjaman_id" id="modal-pinjaman-id">
         <div class="mt-2 text-sm text-gray-700 space-y-4">
@@ -97,6 +101,15 @@
                 <label for="tanggal_bayar" class="block font-medium text-gray-700">Tanggal Bayar</label>
                 <input type="date" name="tanggal_bayar" id="tanggal_bayar" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required value="{{ date('Y-m-d') }}">
             </div>
+            
+            {{-- =============================================== --}}
+            {{-- TAMBAHAN: Input File Bukti Transfer --}}
+            {{-- =============================================== --}}
+            <div>
+                <label for="bukti_transfer" class="block font-medium text-gray-700">Bukti Transfer (Opsional)</label>
+                <input type="file" name="bukti_transfer" id="bukti_transfer" class="mt-1 block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none">
+            </div>
+            
         </div>
         <div class="mt-6 text-right">
              <button type="button" onclick="closePaymentModal()" class="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 mr-2">
