@@ -95,7 +95,7 @@
         function openTransferModal(pinjamanId, currentAnggotaName) {
             modalPinjamanIdInput.value = pinjamanId;
             modalCurrentAnggotaSpan.textContent = currentAnggotaName;
-            transferForm.action = `/admin/pinjaman/${pinjamanId}/transfer`; // Pastikan route ini ada
+            transferForm.action = `/admin/pinjaman/${pinjamanId}/transfer`; 
 
             // Isi dropdown, kecualikan anggota saat ini
             newAnggotaSelect.innerHTML = '<option value="">-- Pilih Nasabah Tujuan --</option>'; // Reset
@@ -165,18 +165,35 @@
 
                         if (data.riwayat && data.riwayat.length > 0) {
                             data.riwayat.forEach(pinjaman => {
-                                // 1. Buat Card Utama
+                        
                                 const card = document.createElement('div');
                                 card.className = 'bg-white shadow border border-gray-200 rounded-lg overflow-hidden';
 
-                                // 2. Buat Header Card (yang bisa diklik)
+
                                 const cardHeader = document.createElement('div');
                                 cardHeader.className = 'p-4 cursor-pointer hover:bg-gray-50';
                                 
                                 const tglValidasi = pinjaman.tanggal_validasi ? new Date(pinjaman.tanggal_validasi).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
                                 const jmlSetuju = pinjaman.status === 'disetujui' ? `Rp ${parseInt(pinjaman.jumlah_disetujui).toLocaleString('id-ID')}` : '-';
-                                let statusClass = pinjaman.status === 'disetujui' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
-                                let statusText = pinjaman.status.charAt(0).toUpperCase() + pinjaman.status.slice(1);
+                                
+                                // Logika Status (Termasuk Lunas)
+                                let statusClass = '';
+                                let statusText = '';
+                                if (pinjaman.status === 'disetujui') {
+                                    if (pinjaman.sisa_hutang <= 0) {
+                                        statusText = 'Lunas';
+                                        statusClass = 'bg-blue-100 text-blue-800';
+                                    } else {
+                                        statusText = 'Disetujui (Aktif)';
+                                        statusClass = 'bg-green-100 text-green-800';
+                                    }
+                                } else if (pinjaman.status === 'ditolak') {
+                                    statusText = 'Ditolak';
+                                    statusClass = 'bg-red-100 text-red-800';
+                                } else {
+                                    statusText = pinjaman.status.charAt(0).toUpperCase() + pinjaman.status.slice(1);
+                                    statusClass = 'bg-gray-100 text-gray-800';
+                                }
                                 
                                 cardHeader.innerHTML = `
                                     <div class="flex justify-between items-center">
@@ -191,7 +208,7 @@
                                     </div>
                                 `;
 
-                                // 3. Buat Body Card (Riwayat Pembayaran)
+
                                 const cardBody = document.createElement('div');
                                 cardBody.className = 'p-4 bg-gray-50 border-t border-gray-200 hidden'; // <-- 'hidden' by default
                                 
@@ -202,7 +219,7 @@
                                         const tglBayar = new Date(pembayaran.tanggal_bayar).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
                                         const jmlBayar = `Rp ${parseInt(pembayaran.jumlah_bayar).toLocaleString('id-ID')}`;
                                         
-                                        // Tambahkan link bukti transfer jika ada
+
                                         let buktiLink = '';
                                         if (pembayaran.bukti_transfer_path) {
                                             const imageUrl = `${window.location.origin}/storage/${pembayaran.bukti_transfer_path}`;
@@ -217,12 +234,12 @@
                                 }
                                 cardBody.innerHTML = paymentsHTML;
 
-                                // 4. Tambahkan event listener untuk toggle
+
                                 cardHeader.addEventListener('click', () => {
                                     cardBody.classList.toggle('hidden');
                                 });
                                 
-                                // 5. Buat Footer Card (Untuk Tombol Transfer)
+
                                 const cardFooter = document.createElement('div');
                                 cardFooter.className = 'p-4 bg-gray-50 border-t border-gray-200 text-right';
 
@@ -237,8 +254,8 @@
                                     };
                                     cardFooter.appendChild(transferButton);
                                 }
-
-                                // 6. Gabungkan
+                                
+                                
                                 card.appendChild(cardHeader);
                                 card.appendChild(cardBody);
                                 if (cardFooter.hasChildNodes()) {
