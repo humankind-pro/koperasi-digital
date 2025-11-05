@@ -31,9 +31,7 @@
                                     <p class="text-sm text-gray-600">{{ $anggota->dibuatOleh->name ?? 'N/A' }}</p>
                                 </div>
                                 <div class="w-1/3 text-right space-x-2">
-                                    {{-- ======================================================= --}}
-                                    {{-- HANYA TERSISA TOMBOL INFO & TINDAKAN --}}
-                                    {{-- ======================================================= --}}
+                                    {{-- Tombol Info & Tindakan (Tidak Berubah) --}}
                                     <button
                                         type="button"
                                         class="px-3 py-1 text-xs font-medium text-white bg-blue-500 rounded hover:bg-blue-600"
@@ -56,54 +54,73 @@
 </x-app-layout>
 
 {{-- ======================================================= --}}
-{{-- MODAL INFO (SUDAH TERMASUK TOMBOL AKSI) --}}
+{{-- MODAL INFO (DENGAN TAMPILAN LEBIH MODERN) --}}
 {{-- ======================================================= --}}
-{{-- Kita tambahkan data-template-url untuk JavaScript --}}
 <div id="infoModal" 
-     class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center hidden z-50"
+     class="fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full flex items-center justify-center hidden z-50 p-4"
      data-tolak-url-template="{{ route('admin.validasi.nasabah.tolak', ['anggota' => '__ID__']) }}"
      data-setujui-url-template="{{ route('admin.validasi.nasabah.setujui', ['anggota' => '__ID__']) }}">
-  <div class="relative p-8 bg-white w-full max-w-2xl mx-auto rounded-lg shadow-xl">
-    <div class="flex justify-between items-center mb-4">
+  <div class="relative bg-white w-full max-w-3xl mx-auto rounded-lg shadow-xl">
+    <div class="flex justify-between items-center p-5 border-b rounded-t-lg">
       <h3 class="text-xl font-bold text-gray-900">Detail Informasi Nasabah</h3>
-      <button onclick="closeInfoModal()" class="text-gray-400 hover:text-gray-600 text-2xl font-bold">&times;</button>
-    </div>
-    <div class="mt-2 text-sm text-gray-700 space-y-2">
-      <p><strong>Nama:</strong> <span id="modal-nama"></span></p>
-      <p><strong>No KTP:</strong> <span id="modal-no_ktp"></span></p>
-      <p><strong>Alamat:</strong> <span id="modal-alamat"></span></p>
-      <p><strong>No Telepon:</strong> <span id="modal-nomor_telepon"></span></p>
-      <p><strong>Pekerjaan:</strong> <span id="modal-pekerjaan"></span></p>
-      <p><strong>Pendapatan Bulanan:</strong> Rp <span id="modal-pendapatan"></span></p>
-      <p><strong>Tanggal Diajukan:</strong> <span id="modal-tanggal"></span></p>
+      <button onclick="closeInfoModal()" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center">
+        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>  
+      </button>
     </div>
     
-    {{-- ======================================================= --}}
-    {{-- TOMBOL AKSI DIPINDAHKAN KE SINI --}}
-    {{-- ======================================================= --}}
-    <div class="mt-6 pt-4 border-t flex justify-between items-center">
-      <button onclick="closeInfoModal()" class="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400">
-        Tutup
-      </button>
-      <div class="space-x-2">
-          {{-- Form Tolak --}}
-          <form id="form-tolak" method="POST" action="" class="inline-block">
-              @csrf
-              @method('PATCH')
-              <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-md hover:bg-red-600">
-                  Tolak
-              </button>
-          </form>
+    <div class="p-6 space-y-4">
+        <dl class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 text-sm">
+            <div class="col-span-1">
+                <dt class="font-medium text-gray-500">Nama Lengkap</dt>
+                <dd class="mt-1 font-semibold text-gray-900" id="modal-nama"></dd>
+            </div>
+            <div class="col-span-1">
+                <dt class="font-medium text-gray-500">Nomor KTP</dt>
+                <dd class="mt-1 font-semibold text-gray-900" id="modal-no_ktp"></dd>
+            </div>
+            <div class="col-span-2">
+                <dt class="font-medium text-gray-500">Alamat Lengkap</dt>
+                <dd class="mt-1 font-semibold text-gray-900" id="modal-alamat"></dd>
+            </div>
+            <div class="col-span-1">
+                <dt class="font-medium text-gray-500">Nomor Telepon</dt>
+                <dd class="mt-1 font-semibold text-gray-900" id="modal-nomor_telepon"></dd>
+            </div>
+            <div class="col-span-1">
+                <dt class="font-medium text-gray-500">Pekerjaan</dt>
+                <dd class="mt-1 font-semibold text-gray-900" id="modal-pekerjaan"></dd>
+            </div>
+            <div class="col-span-1">
+                <dt class="font-medium text-gray-500">Pendapatan Bulanan</dt>
+                <dd class="mt-1 font-semibold text-gray-900" id="modal-pendapatan"></dd>
+            </div>
+            <div class="col-span-1">
+                <dt class="font-medium text-gray-500">Tanggal Diajukan</dt>
+                <dd class="mt-1 font-semibold text-gray-900" id="modal-tanggal"></dd>
+            </div>
+        </dl>
+    </div>
+    
+    <div class="flex items-center p-6 space-x-3 border-t border-gray-200 rounded-b-lg justify-end">
+        <button onclick="closeInfoModal()" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 text-sm font-medium">
+            Tutup
+        </button>
+        
+        <form id="form-tolak" method="POST" action="" class="inline-block">
+            @csrf
+            @method('PATCH')
+            <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700">
+                Tolak Pengajuan
+            </button>
+        </form>
 
-          {{-- Form Setujui --}}
-          <form id="form-setujui" method="POST" action="" class="inline-block">
-              @csrf
-              @method('PATCH')
-              <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-green-500 rounded-md hover:bg-green-600">
-                  Setujui
-              </button>
-          </form>
-      </div>
+        <form id="form-setujui" method="POST" action="" class="inline-block">
+            @csrf
+            @method('PATCH')
+            <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700">
+                Setujui Pengajuan
+            </button>
+        </form>
     </div>
   </div>
 </div>
@@ -114,6 +131,8 @@
 {{-- ======================================================= --}}
 <script>
     const infoModal = document.getElementById('infoModal');
+    
+    // Ambil elemen dd (description details)
     const modalNama = document.getElementById('modal-nama');
     const modalNoKtp = document.getElementById('modal-no_ktp');
     const modalAlamat = document.getElementById('modal-alamat');
@@ -136,13 +155,11 @@
         modalNomorTelepon.textContent = anggotaData.nomor_telepon || '-';
         modalPekerjaan.textContent = anggotaData.pekerjaan || '-';
         modalPendapatan.textContent = anggotaData.pendapatan_bulanan ? 
-            parseInt(anggotaData.pendapatan_bulanan).toLocaleString('id-ID') : '-';
+            'Rp ' + parseInt(anggotaData.pendapatan_bulanan).toLocaleString('id-ID') : '-';
         modalTanggal.textContent = anggotaData.created_at ? 
             new Date(anggotaData.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '-';
 
-        // =======================================================
-        // BARU: Set URL action formulir secara dinamis
-        // =======================================================
+        // Set URL action formulir secara dinamis
         tolakForm.action = tolakUrlTemplate.replace('__ID__', anggotaData.id);
         setujuiForm.action = setujuiUrlTemplate.replace('__ID__', anggotaData.id);
 
