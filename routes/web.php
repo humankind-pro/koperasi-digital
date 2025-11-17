@@ -54,6 +54,10 @@ Route::get('/dashboard', function () {
                                     ->take(5)
                                     ->get();
         return view('karyawans.dashboard', compact('totalNasabah', 'pengajuanNasabahTerbaru'));
+    
+    } elseif ($userRole === 'sekertaris') {
+        // Panggil method index di controller untuk hitung statistik
+        return app(\App\Http\Controllers\SekertarisController::class)->index();
     }
     
     // Fallback
@@ -124,4 +128,14 @@ Route::middleware(['auth', 'role:karyawan'])->group(function () {
 Route::get('/pinjaman-aktif', [PembayaranController::class, 'indexPinjamanAktif'])->name('karyawan.pinjaman.aktif');
     Route::post('/pembayaran', [PembayaranController::class, 'storePembayaran'])->name('karyawan.pembayaran.store');
 
+
+    // ...
+
+// Grup route khusus untuk Sekertaris
+Route::middleware(['auth', 'role:sekertaris'])->prefix('sekertaris')->name('sekertaris.')->group(function () {
+    // Route Rekap Pinjaman
+    Route::get('/rekap-pinjaman', [\App\Http\Controllers\SekertarisController::class, 'rekapPinjaman'])->name('pinjaman.rekap');
+    
+    // Nanti tambah route absensi di sini
+});
 require __DIR__.'/auth.php';
