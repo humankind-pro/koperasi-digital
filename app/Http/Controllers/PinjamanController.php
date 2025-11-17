@@ -12,12 +12,29 @@ class PinjamanController extends Controller
     /**
      * Menampilkan formulir "Ajukan Pinjaman".
      */
-    public function create()
-    {
-        // Hanya ambil anggota yang statusnya sudah 'disetujui'
-        $anggotas = Anggota::where('status', 'disetujui')->orderBy('nama')->get();
-        return view('karyawans.pinjaman.create', compact('anggotas'));
-    }
+    // 1. METHOD INDEX (Riwayat Pengajuan Saya)
+public function index()
+{
+    // Sudah benar (diajukan_oleh_user_id), tapi mari kita pastikan
+    $riwayatPinjaman = Pinjaman::where('diajukan_oleh_user_id', Auth::id()) // <-- Pastikan ini Auth::id()
+        ->with('anggota')
+        ->latest('tanggal_pengajuan')
+        ->paginate(10);
+        
+    return view('karyawans.pinjaman.index', compact('riwayatPinjaman'));
+}
+
+// 2. METHOD CREATE (Form Pengajuan - Dropdown/Pilihan)
+public function create()
+{
+    // Hanya ambil anggota milik karyawan ini yang disetujui
+    $anggotas = Anggota::where('status', 'disetujui')
+                        ->where('dibuat_oleh_user_id', Auth::id()) // <-- KUNCI PEMBATASAN
+                        ->orderBy('nama')
+                        ->get();
+                        
+    return view('karyawans.pinjaman.create', compact('anggotas'));
+}
 
     /**
      * Menyimpan data pengajuan pinjaman baru.

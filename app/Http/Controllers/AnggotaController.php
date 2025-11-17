@@ -11,12 +11,13 @@ class AnggotaController extends Controller
 {
     // Menampilkan daftar nasabah yang diinput oleh karyawan ini
     public function index()
-    {
-        $anggotas = Anggota::where('dibuat_oleh_user_id', Auth::id())
-                            ->latest()
-                            ->paginate(10);
-        return view('karyawans.anggota.index', compact('anggotas'));
-    }
+{
+    // Tambahkan where('dibuat_oleh_user_id', Auth::id())
+    $anggotas = Anggota::where('dibuat_oleh_user_id', Auth::id())
+                        ->latest()
+                        ->paginate(10);
+    return view('karyawans.anggota.index', compact('anggotas'));
+}
 
     // Menampilkan form input nasabah
     public function create()
@@ -49,20 +50,23 @@ class AnggotaController extends Controller
 
     
     public function searchByNik(Request $request)
-    {
-        $request->validate(['nik' => 'required|string']);
-        $nik = $request->input('nik');
+{
+    $request->validate(['nik' => 'required|string']);
+    $nik = $request->input('nik');
 
-        $anggota = Anggota::where('no_ktp', $nik)
-                          ->where('status', 'disetujui')
-                          ->first(['id', 'nama']);
+    // Tambahkan pengecekan kepemilikan
+    $anggota = Anggota::where('no_ktp', $nik)
+                      ->where('dibuat_oleh_user_id', Auth::id()) // <-- KUNCI PEMBATASAN
+                      ->where('status', 'disetujui')
+                      ->first(['id', 'nama']);
 
-        if ($anggota) {
-            return response()->json(['success' => true, 'anggota' => $anggota]);
-        } else {
-            return response()->json(['success' => false, 'message' => 'Nasabah dengan NIK tersebut tidak ditemukan atau belum disetujui.'], 404);
-        }
+    if ($anggota) {
+        return response()->json(['success' => true, 'anggota' => $anggota]);
+    } else {
+        // Pesan error bisa lebih spesifik jika mau, tapi untuk keamanan "tidak ditemukan" sudah cukup
+        return response()->json(['success' => false, 'message' => 'Nasabah tidak ditemukan di daftar Anda atau belum disetujui.'], 404);
     }
+}
 
     public function showSearchRiwayatForm()
     {
@@ -73,28 +77,31 @@ class AnggotaController extends Controller
      * Mencari anggota berdasarkan NIK dan mengembalikan riwayat pinjamannya.
      */
     public function searchNikRiwayat(Request $request)
-    {
-        $request->validate(['nik' => 'required|string']);
-        $nik = $request->input('nik');
+{
+    $request->validate(['nik' => 'required|string']);
+    $nik = $request->input('nik');
 
-        $anggota = Anggota::where('no_ktp', $nik)->first();
+    // Tambahkan pengecekan kepemilikan
+    $anggota = Anggota::where('no_ktp', $nik)
+                      ->where('dibuat_oleh_user_id', Auth::id()) // <-- KUNCI PEMBATASAN
+                      ->first();
 
-        if (!$anggota) {
-            return response()->json(['success' => false, 'message' => 'Nasabah dengan NIK tersebut tidak ditemukan.'], 404);
-        }
-
-        // Kode ini sekarang akan berfungsi karena Model Pinjaman sudah diimpor
-        $riwayatPinjaman = Pinjaman::where('anggota_id', $anggota->id)
-                                ->with(['diajukanOleh', 'divalidasiOleh', 'pembayaran'])
-                                ->latest('tanggal_pengajuan')
-                                ->get(); 
-
-        return response()->json([
-            'success' => true,
-            'anggota' => $anggota,
-            'riwayat' => $riwayatPinjaman
-        ]);
+    if (!$anggota) {
+        return response()->json(['success' => false, 'message' => 'Nasabah tidak ditemukan di daftar Anda.'], 404);
     }
+
+    // Ambil riwayat
+    $riwayatPinjaman = Pinjaman::where('anggota_id', $anggota->id)
+                            ->with(['diajukanOleh:id,name', 'divalidasiOleh:id,name', 'pembayaran'])
+                            ->latest('tanggal_pengajuan')
+                            ->get(); 
+
+    return response()->json([
+        'success' => true,
+        'anggota' => $anggota,
+        'riwayat' => $riwayatPinjaman
+    ]);
+}
 
     public function indexForSuperAdmin()
     {

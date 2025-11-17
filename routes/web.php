@@ -1,9 +1,13 @@
 <?php
 
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
+use App\Models\Anggota;
+use App\Models\Pinjaman;
+use App\Models\User; // <-- Pastikan ini ada
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AdminController;
-use App\Http\Controllers\KaryawanController; 
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\KaryawanController;
 use App\Http\Controllers\PinjamanController;
 use App\Http\Controllers\AnggotaController;
 use App\Http\Controllers\AdminValidasiController;
@@ -24,18 +28,45 @@ Route::get('/', function () {
 
 // Route untuk dashboard biasa (untuk admin dan karyawan)
 Route::get('/dashboard', function () {
-    return view('dashboard');
+    $userRole = Auth::user()->role;
+
+    // 1. SUPER ADMIN
+    if ($userRole === 'super_admin') {
+        // Logika Statistik Super Admin
+        $totalAdmin = \App\Models\User::where('role', 'admin')->count();
+        $totalKaryawan = \App\Models\User::where('role', 'karyawan')->count();
+        $totalNasabah = \App\Models\Anggota::count();
+        return view('super_admin.dashboard', compact('totalAdmin', 'totalKaryawan', 'totalNasabah'));
+
+    // 2. ADMIN
+    } elseif ($userRole === 'admin') {
+        $totalKaryawan = User::where('role', 'karyawan')->count();
+        $totalNasabah = Anggota::count();
+        $pendingPinjaman = Pinjaman::where('status', 'pending')->count();
+        return view('admins.dashboard', compact('totalKaryawan', 'totalNasabah', 'pendingPinjaman'));
+
+    // 3. KARYAWAN
+    } elseif ($userRole === 'karyawan') {
+        $userId = Auth::id();
+        $totalNasabah = Anggota::where('dibuat_oleh_user_id', $userId)->count();
+        $pengajuanNasabahTerbaru = Anggota::where('dibuat_oleh_user_id', $userId)
+                                    ->latest()
+                                    ->take(5)
+                                    ->get();
+        return view('karyawans.dashboard', compact('totalNasabah', 'pengajuanNasabahTerbaru'));
+    }
+    
+    // Fallback
+    return view('dashboard'); 
+
 })->middleware(['auth', 'verified'])->name('dashboard');
+
 
 
 
 
 // Grup route khusus untuk Super Admin
 Route::middleware(['auth', 'role:super_admin'])->group(function () {
-    // Route untuk dashboard Super Admin
-    Route::get('/super-admin/dashboard', function () {
-        return view('super_admin.dashboard');
-    })->name('super_admin.dashboard');
 
     // Route resource untuk CRUD Admin
     Route::resource('admins', AdminController::class);

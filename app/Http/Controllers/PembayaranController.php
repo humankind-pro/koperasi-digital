@@ -15,15 +15,15 @@ class PembayaranController extends Controller
 {
     // ... method indexPinjamanAktif() tidak berubah ...
     public function indexPinjamanAktif()
-    {
-        $pinjamanAktif = Pinjaman::where('status', 'disetujui')
-                                ->with('anggota')
-                                ->latest('tanggal_validasi')
-                                ->paginate(10);
-        
-        return view('karyawans.pembayaran.index', compact('pinjamanAktif'));
-    }
-
+{
+    $pinjamanAktif = Pinjaman::where('status', 'disetujui')
+                            ->where('diajukan_oleh_user_id', Auth::id()) // <-- KUNCI PEMBATASAN
+                            ->with('anggota')
+                            ->latest('tanggal_validasi')
+                            ->paginate(10);
+    
+    return view('karyawans.pembayaran.index', compact('pinjamanAktif'));
+}
 
     /**
      * Menyimpan data pembayaran baru dan update sisa hutang serta skor kredit.
@@ -40,7 +40,9 @@ class PembayaranController extends Controller
 
         DB::beginTransaction();
         try {
-            $pinjaman = Pinjaman::findOrFail($request->pinjaman_id);
+            $pinjaman = Pinjaman::where('id', $request->pinjaman_id)
+                            ->where('diajukan_oleh_user_id', Auth::id()) // <-- TAMBAHAN KEAMANAN
+                            ->firstOrFail(); // Gunakan firstOrFail agar 404 jika mencoba bayar punya orang lain
 
             // ... (Guard, logika skor kredit, dll. tidak berubah) ...
             if (is_null($pinjaman->tenggat_berikutnya)) { /* ... */ }

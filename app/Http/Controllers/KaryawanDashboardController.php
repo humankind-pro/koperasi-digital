@@ -4,26 +4,24 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Models\Pinjaman; 
+use App\Models\Anggota; // <-- Kita fokus ke model Anggota sekarang
+use App\Models\Pinjaman;
+
 class KaryawanDashboardController extends Controller
 {
-    /**
-     * Menampilkan halaman dashboard untuk karyawan.
-     */
     public function index()
     {
-        // Ambil ID karyawan yang sedang login
         $userId = Auth::id();
 
-        // Ambil 5 data pinjaman terakhir yang diajukan oleh karyawan ini
-        // Kita juga memuat data anggota terkait menggunakan 'with('anggota')'
-        $pinjamanTerbaru = Pinjaman::where('diajukan_oleh_user_id', $userId)
-                                ->with('anggota')
-                                ->latest()
-                                ->take(5)
-                                ->get();
+        // 1. Hitung Total Nasabah yang diurus karyawan ini
+        $totalNasabah = Anggota::where('dibuat_oleh_user_id', $userId)->count();
 
-        // Kirim data ke view
-        return view('karyawans.dashboard', compact('pinjamanTerbaru'));
+        // 2. Ambil 5 Pengajuan Pendaftaran Nasabah Terakhir
+        $pengajuanNasabahTerbaru = Anggota::where('dibuat_oleh_user_id', $userId)
+                                    ->latest() // Urutkan dari yang paling baru
+                                    ->take(5)
+                                    ->get();
+
+        return view('karyawans.dashboard', compact('totalNasabah', 'pengajuanNasabahTerbaru'));
     }
 }
