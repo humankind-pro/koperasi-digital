@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Pinjaman;
 use Carbon\Carbon;
+use App\Models\PengaturanAbsensi;
 
 class SekertarisController extends Controller
 {
@@ -59,4 +60,26 @@ class SekertarisController extends Controller
             'totalNominal'
         ));
     }
+
+    public function editPengaturan()
+{
+    $pengaturan = PengaturanAbsensi::first();
+    return view('sekertaris.pengaturan.edit', compact('pengaturan'));
+}
+
+public function updatePengaturan(Request $request)
+{
+    $request->validate([
+        'jam_masuk' => 'required',
+        'potongan_per_terlambat' => 'required|numeric|min:0',
+    ]);
+
+    $pengaturan = PengaturanAbsensi::first();
+    $pengaturan->update([
+        'jam_masuk' => $request->jam_masuk,
+        'potongan_per_terlambat' => $request->potongan_per_terlambat,
+    ]);
+
+    return back()->with('success', 'Pengaturan absensi diperbarui.');
+}
 }

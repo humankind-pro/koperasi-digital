@@ -13,6 +13,8 @@ use App\Http\Controllers\AnggotaController;
 use App\Http\Controllers\AdminValidasiController;
 use App\Http\Controllers\PembayaranController;
 use App\Http\Controllers\AbsensiController;
+use App\Http\Controllers\GajiController;
+use App\Http\Controllers\SekertarisController;
 
 
 /*
@@ -97,6 +99,9 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('/riwayat-pinjaman', [AdminValidasiController::class, 'riwayatPinjaman'])->name('riwayat.pinjaman');
     Route::get('/search/nik-riwayat', [AdminValidasiController::class, 'searchNikRiwayatAdmin'])->name('search.nik.riwayat');
     Route::patch('/pinjaman/{pinjaman}/transfer', [AdminValidasiController::class, 'transferPinjaman'])->name('pinjaman.transfer');
+
+    //Cek gaji
+    Route::get('/gaji-saya', [GajiController::class, 'riwayatGajiSaya'])->name('gaji.saya');
 });
 
 
@@ -123,6 +128,9 @@ Route::middleware(['auth', 'role:karyawan'])->group(function () {
     Route::get('/riwayat-pinjaman/cari', [AnggotaController::class, 'showSearchRiwayatForm'])->name('anggota.riwayat.search.form');
     // Route untuk menangani pencarian AJAX (mirip sebelumnya)
     Route::get('/anggota/search/nik-riwayat', [AnggotaController::class, 'searchNikRiwayat'])->name('anggota.search.nik.riwayat');
+
+    //cek gaji
+    Route::get('/gaji-saya', [GajiController::class, 'riwayatGajiSaya'])->name('karyawan.gaji.saya');
 });
 
 Route::get('/pinjaman-aktif', [PembayaranController::class, 'indexPinjamanAktif'])->name('karyawan.pinjaman.aktif');
@@ -136,6 +144,12 @@ Route::middleware(['auth', 'role:sekertaris'])->prefix('sekertaris')->name('seke
     // Route Rekap Pinjaman
     Route::get('/rekap-pinjaman', [\App\Http\Controllers\SekertarisController::class, 'rekapPinjaman'])->name('pinjaman.rekap');
     
+    Route::get('/gaji', [GajiController::class, 'indexSekertaris'])->name('gaji.index');
+    Route::get('/gaji/create', [GajiController::class, 'create'])->name('gaji.create');
+    Route::post('/gaji', [GajiController::class, 'store'])->name('gaji.store');
+    Route::get('/pengaturan-absensi', [SekertarisController::class, 'editPengaturan'])->name('pengaturan.edit');
+    Route::put('/pengaturan-absensi', [SekertarisController::class, 'updatePengaturan'])->name('pengaturan.update');
+    Route::get('/gaji/hitung-otomatis', [GajiController::class, 'hitungPotongan'])->name('gaji.hitung');
     // Nanti tambah route absensi di sini
 });
 require __DIR__.'/auth.php';
