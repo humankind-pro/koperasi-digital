@@ -61,6 +61,29 @@ public function create()
         // Redirect ke dashboard karyawan dengan pesan sukses
         return redirect()->route('dashboard')->with('success', 'Pengajuan pinjaman berhasil dikirim untuk divalidasi.');
     }
+    
+public function riwayatPinjaman(Request $request)
+    {
+        // 1. Query Dasar: Hanya pinjaman yang diajukan oleh Karyawan ini
+        $query = Pinjaman::where('diajukan_oleh_user_id', \Illuminate\Support\Facades\Auth::id())
+                         // PENTING: Load relasi 'pembayaran' agar bisa dilihat di modal
+                         ->with(['anggota', 'pembayaran']);
 
+        // 2. Logika Pencarian (Sama seperti Admin)
+        if ($request->has('search') && $request->search != '') {
+            $keyword = $request->search;
+            $query->whereHas('anggota', function($q) use ($keyword) {
+                $q->where('no_ktp', 'like', "%{$keyword}%")
+                  ->orWhere('nama', 'like', "%{$keyword}%");
+            });
+        }
+
+        // 3. Ambil Data (Pagination)
+        $riwayat = $query->latest('updated_at')
+                         ->paginate(10)
+                         ->withQueryString();
+
+        return view('karyawans.pinjaman.riwayat', compact('riwayat'));
+    }
     // ... method lain seperti index() ...
 }

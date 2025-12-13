@@ -11,9 +11,6 @@
                     <a href="{{ route('anggota.create') }}" class="inline-block mb-6 px-4 py-2 bg-cyan-500 border border-transparent rounded-md text-sm text-white hover:bg-cyan-600 transition ease-in-out duration-150">
                         Ajukan Nasabah Baru
                     </a>
-                    <a href="{{ route('karyawan.pinjaman.aktif') }}" class="inline-block mb-6 ml-4 px-4 py-2 bg-green-500 border rounded-md text-sm text-white hover:bg-green-600 ...">
-    Lihat Pinjaman Aktif & Pembayaran
-</a>
 
                     {{-- Menampilkan pesan sukses --}}
                     @if (session('success'))

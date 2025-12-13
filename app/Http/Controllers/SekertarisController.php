@@ -82,4 +82,30 @@ public function updatePengaturan(Request $request)
 
     return back()->with('success', 'Pengaturan absensi diperbarui.');
 }
+public function createFingerprint()
+    {
+        // Ambil semua user (Karyawan & Admin) untuk dipilih
+        $users = \App\Models\User::whereIn('role', ['karyawan', 'admin'])
+                                 ->orderBy('name')
+                                 ->get();
+                                 
+        return view('sekertaris.absensi.registrasi', compact('users'));
+    }
+
+    // Menyimpan ID Fingerprint ke User
+    public function storeFingerprint(Request $request)
+    {
+        $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'fingerprint_id' => 'required|string|unique:users,fingerprint_id', // ID harus unik
+        ]);
+
+        $user = \App\Models\User::findOrFail($request->user_id);
+        
+        $user->update([
+            'fingerprint_id' => $request->fingerprint_id
+        ]);
+
+        return redirect()->back()->with('success', "ID Fingerprint berhasil didaftarkan untuk pegawai: {$user->name}");
+    }
 }

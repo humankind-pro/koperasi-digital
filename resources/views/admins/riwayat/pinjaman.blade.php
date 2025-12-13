@@ -2,283 +2,238 @@
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 md:p-8 text-gray-900">
-                    <h3 class="text-xl font-bold text-gray-800 mb-6">
-                        Cari Riwayat Validasi Pinjaman Nasabah
-                    </h3>
+                <div class="p-6 text-gray-900">
+                    
+                    {{-- HEADER & FORM PENCARIAN --}}
+                    <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                        <h3 class="text-xl font-bold text-gray-800">
+                            Riwayat Validasi & Pembayaran
+                        </h3>
 
-                    {{-- Area untuk pesan error/sukses pencarian --}}
-                    <div id="search-feedback" class="mb-4 text-sm"></div>
+                        <form method="GET" action="{{ route('admin.riwayat.pinjaman') }}" class="flex w-full md:w-auto gap-2">
+                            <input type="text" name="search" value="{{ request('search') }}" 
+                                   class="border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 w-full md:w-64" 
+                                   placeholder="Cari NIK atau Nama...">
+                            
+                            <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 font-medium">
+                                Cari
+                            </button>
 
-                    {{-- Form Pencarian NIK --}}
-                    <div class="mb-8 flex items-end space-x-2">
-                        <div class="flex-grow">
-                            <label for="nik_search" class="block text-sm font-medium text-gray-700">Masukkan NIK Nasabah</label>
-                            <input type="text" id="nik_search" name="nik_search" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" placeholder="NIK...">
-                        </div>
-                        <button type="button" id="search-button" class="px-4 py-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600">
-                            Cari
-                        </button>
+                            @if(request('search'))
+                                <a href="{{ route('admin.riwayat.pinjaman') }}" class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 font-medium flex items-center">
+                                    Reset
+                                </a>
+                            @endif
+                        </form>
                     </div>
 
-                    {{-- Area untuk Menampilkan Hasil (Awalnya tersembunyi) --}}
-                    <div id="result-area" class="mt-8 hidden">
-                        <h4 class="text-lg font-semibold mb-4">
-                            Riwayat Pinjaman untuk: <span id="anggota-name" class="text-cyan-600"></span>
-                            <span class="text-base font-medium text-gray-700">(Skor Kredit: <span id="anggota-skor" class="font-bold"></span>)</span>
-                        </h4>
-
-                        <div id="riwayat-list" class="space-y-3">
-                            {{-- Data riwayat akan dimasukkan di sini oleh JavaScript --}}
+                    @if (session('success'))
+                        <div class="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
+                            {{ session('success') }}
                         </div>
+                    @endif
+
+                    {{-- TABEL DATA UTAMA --}}
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200 border">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Tanggal Validasi</th>
+                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Nasabah</th>
+                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Pinjaman</th>
+                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Sisa Hutang</th>
+                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                @forelse ($riwayatValidasi as $pinjaman)
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            {{ \Carbon\Carbon::parse($pinjaman->tanggal_validasi)->format('d M Y') }}
+                                        </td>
+
+                                        <td class="px-6 py-4">
+                                            <div class="text-sm font-bold text-gray-900">{{ $pinjaman->anggota->nama }}</div>
+                                            <div class="text-xs text-gray-500">{{ $pinjaman->anggota->no_ktp }}</div>
+                                        </td>
+
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="text-sm font-medium text-gray-900">
+                                                Rp {{ number_format($pinjaman->jumlah_disetujui, 0, ',', '.') }}
+                                            </div>
+                                            <div class="text-xs text-gray-500">{{ $pinjaman->lama_angsuran }} Bulan</div>
+                                        </td>
+
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            @if($pinjaman->sisa_hutang <= 0)
+                                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Lunas</span>
+                                            @else
+                                                <span class="text-sm font-bold text-red-600">
+                                                    Rp {{ number_format($pinjaman->sisa_hutang, 0, ',', '.') }}
+                                                </span>
+                                            @endif
+                                        </td>
+
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                                            {{-- TOMBOL LIHAT HISTORY PEMBAYARAN --}}
+                                            {{-- Kita kirim data JSON ke fungsi JS lewat atribut onclick --}}
+                                            <button onclick='openHistoryModal(@json($pinjaman->pembayaran), "{{ $pinjaman->anggota->nama }}")'
+                                                class="text-blue-600 hover:text-blue-900 bg-blue-50 px-3 py-1 rounded border border-blue-200">
+                                                Riwayat Bayar
+                                            </button>
+
+                                            @if ($pinjaman->status == 'disetujui' && $pinjaman->sisa_hutang > 0)
+                                                <button onclick="openTransferModal({{ $pinjaman->id }}, '{{ $pinjaman->anggota->nama }}')" 
+                                                    class="text-orange-600 hover:text-orange-900 bg-orange-50 px-3 py-1 rounded border border-orange-200">
+                                                    Transfer
+                                                </button>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="5" class="px-6 py-8 text-center text-gray-500">
+                                            Data tidak ditemukan.
+                                        </td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
                     </div>
 
+                    <div class="mt-4">
+                        {{ $riwayatValidasi->links() }}
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
     {{-- ======================================================= --}}
-    {{-- MODAL TRANSFER PINJAMAN --}}
+    {{-- MODAL RIWAYAT PEMBAYARAN (BARU) --}}
     {{-- ======================================================= --}}
+    <div id="historyModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center hidden z-50">
+        <div class="relative p-6 bg-white w-full max-w-2xl mx-auto rounded-lg shadow-xl">
+            <div class="flex justify-between items-center mb-4 border-b pb-2">
+                <h3 class="text-lg font-bold text-gray-900">Riwayat Pembayaran: <span id="history-nama" class="text-blue-600"></span></h3>
+                <button onclick="document.getElementById('historyModal').classList.add('hidden')" class="text-gray-400 hover:text-red-600 text-2xl font-bold">&times;</button>
+            </div>
+            
+            <div class="overflow-y-auto max-h-96">
+                <table class="min-w-full text-sm text-left">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-100">
+                        <tr>
+                            <th class="px-4 py-2">Tanggal Bayar</th>
+                            <th class="px-4 py-2">Jumlah</th>
+                            <th class="px-4 py-2 text-center">Bukti Transfer</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-table-body">
+                        {{-- Data akan diisi oleh Javascript --}}
+                    </tbody>
+                </table>
+                <p id="no-history-msg" class="text-center text-gray-500 py-4 hidden">Belum ada riwayat pembayaran.</p>
+            </div>
+
+            <div class="mt-4 text-right">
+                <button onclick="document.getElementById('historyModal').classList.add('hidden')" class="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300">Tutup</button>
+            </div>
+        </div>
+    </div>
+
+    {{-- MODAL TRANSFER (TETAP ADA) --}}
     <div id="transferModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center hidden z-50">
-      <div class="relative p-8 bg-white w-full max-w-lg mx-auto rounded-lg shadow-xl">
-        <div class="flex justify-between items-center mb-4">
-          <h3 class="text-xl font-bold text-gray-900">Transfer Pinjaman Nasabah <span id="modal-current-anggota" class="text-cyan-600"></span></h3>
-          <button onclick="closeTransferModal()" class="text-gray-400 hover:text-gray-600 text-2xl font-bold">&times;</button>
+        <div class="relative p-8 bg-white w-full max-w-lg mx-auto rounded-lg shadow-xl">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-gray-900">Transfer Pinjaman: <span id="modal-current-anggota" class="text-cyan-600"></span></h3>
+                <button onclick="document.getElementById('transferModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 text-2xl font-bold">&times;</button>
+            </div>
+            
+            <form id="transferForm" method="POST" action="">
+                @csrf
+                @method('PATCH')
+                <div class="mt-2 text-sm text-gray-700 space-y-4">
+                    <div>
+                        <label for="new_anggota_id" class="block font-medium text-gray-700">Pindahkan Ke Nasabah:</label>
+                        <select name="new_anggota_id" id="new_anggota_id" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required>
+                            <option value="">-- Pilih Nasabah Tujuan --</option>
+                            @foreach($semuaAnggotaDisetujui as $anggota)
+                                <option value="{{ $anggota->id }}">{{ $anggota->nama }} (NIK: {{ $anggota->no_ktp }})</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label for="alasan_transfer" class="block font-medium text-gray-700">Alasan:</label>
+                        <textarea name="alasan_transfer" rows="2" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></textarea>
+                    </div>
+                </div>
+                <div class="mt-6 text-right">
+                    <button type="button" onclick="document.getElementById('transferModal').classList.add('hidden')" class="px-4 py-2 bg-gray-300 rounded-md mr-2">Batal</button>
+                    <button type="submit" class="px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600">Proses</button>
+                </div>
+            </form>
         </div>
-        <form id="transferForm" method="POST" action=""> {{-- Action akan di-set oleh JS --}}
-            @csrf
-            @method('PATCH')
-            <input type="hidden" name="pinjaman_id" id="modal-transfer-pinjaman-id">
-            <div class="mt-2 text-sm text-gray-700 space-y-4">
-                <div>
-                    <label for="new_anggota_id" class="block font-medium text-gray-700">Pindahkan Ke Nasabah:</label>
-                    <select name="new_anggota_id" id="new_anggota_id" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required>
-                        <option value="">-- Pilih Nasabah Tujuan --</option>
-                        {{-- Opsi akan diisi oleh JS dari variabel 'semuaAnggotaList' --}}
-                    </select>
-                </div>
-                 <div>
-                    <label for="alasan_transfer" class="block font-medium text-gray-700">Alasan Transfer (Opsional):</label>
-                    <textarea name="alasan_transfer" id="alasan_transfer" rows="3" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></textarea>
-                </div>
-            </div>
-            <div class="mt-6 text-right">
-                 <button type="button" onclick="closeTransferModal()" class="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 mr-2">
-                    Batal
-                </button>
-                <button type="submit" class="px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600">
-                    Proses Transfer
-                </button>
-            </div>
-        </form>
-      </div>
     </div>
-    {{-- ======================================================= --}}
 
-
-    @push('scripts')
+    {{-- SCRIPT JAVASCRIPT --}}
     <script>
-        // ===============================================
-        // Variabel dan Fungsi untuk MODAL TRANSFER
-        // ===============================================
-        const transferModal = document.getElementById('transferModal');
-        const transferForm = document.getElementById('transferForm');
-        const modalPinjamanIdInput = document.getElementById('modal-transfer-pinjaman-id');
-        const modalCurrentAnggotaSpan = document.getElementById('modal-current-anggota');
-        const newAnggotaSelect = document.getElementById('new_anggota_id');
-        
-        // Mengambil data anggota dari Controller (PHP)
-        let semuaAnggotaList = @json($semuaAnggotaDisetujui ?? []);
+        // === FUNGSI MODAL HISTORY PEMBAYARAN ===
+        function openHistoryModal(payments, nama) {
+            const modal = document.getElementById('historyModal');
+            const tbody = document.getElementById('history-table-body');
+            const noMsg = document.getElementById('no-history-msg');
+            
+            document.getElementById('history-nama').innerText = nama;
+            tbody.innerHTML = ''; // Bersihkan isi lama
 
-        function openTransferModal(pinjamanId, currentAnggotaName) {
-            modalPinjamanIdInput.value = pinjamanId;
-            modalCurrentAnggotaSpan.textContent = currentAnggotaName;
-            transferForm.action = `/admin/pinjaman/${pinjamanId}/transfer`; 
-
-            // Isi dropdown, kecualikan anggota saat ini
-            newAnggotaSelect.innerHTML = '<option value="">-- Pilih Nasabah Tujuan --</option>'; // Reset
-            semuaAnggotaList.forEach(anggota => {
-                 if (anggota.nama !== currentAnggotaName) {
-                    const option = document.createElement('option');
-                    option.value = anggota.id;
-                    option.textContent = `${anggota.nama} (NIK: ${anggota.no_ktp})`;
-                    newAnggotaSelect.appendChild(option);
-                 }
-            });
-
-            document.getElementById('alasan_transfer').value = '';
-            transferModal.classList.remove('hidden');
-        }
-
-        function closeTransferModal() {
-            transferModal.classList.add('hidden');
-        }
-        
-        // ===============================================
-        // Variabel dan Fungsi untuk PENCARIAN NIK
-        // ===============================================
-        document.addEventListener('DOMContentLoaded', function () {
-            const searchButton = document.getElementById('search-button');
-            const nikInput = document.getElementById('nik_search');
-            const searchFeedback = document.getElementById('search-feedback');
-            const resultArea = document.getElementById('result-area');
-            const anggotaNameEl = document.getElementById('anggota-name');
-            const riwayatListDiv = document.getElementById('riwayat-list');
-            const anggotaSkorEl = document.getElementById('anggota-skor');
-
-            searchButton.addEventListener('click', function () {
-                const nik = nikInput.value.trim();
-                searchFeedback.textContent = '';
-                resultArea.classList.add('hidden');
-                riwayatListDiv.innerHTML = ''; // Kosongkan riwayat
-
-                if (!nik) {
-                    searchFeedback.textContent = 'Silakan masukkan NIK.';
-                    searchFeedback.className = 'mb-4 text-sm text-red-600';
-                    return;
-                }
-
-                searchFeedback.textContent = 'Mencari...';
-                searchFeedback.className = 'mb-4 text-sm text-gray-500';
-
-                fetch(`{{ route('admin.search.nik.riwayat') }}?nik=${nik}`, {
-                    method: 'GET',
-                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        searchFeedback.textContent = '';
-                        anggotaNameEl.textContent = data.anggota.nama;
-                        
-                        // Logika Skor Kredit (100 = Bagus)
-                        anggotaSkorEl.textContent = data.anggota.skor_kredit;
-                        if (data.anggota.skor_kredit < 70) {
-                            anggotaSkorEl.className = 'font-bold text-red-500';
-                        } else if (data.anggota.skor_kredit < 90) {
-                            anggotaSkorEl.className = 'font-bold text-yellow-500';
-                        } else {
-                            anggotaSkorEl.className = 'font-bold text-green-500';
-                        }
-
-                        if (data.riwayat && data.riwayat.length > 0) {
-                            data.riwayat.forEach(pinjaman => {
-                        
-                                const card = document.createElement('div');
-                                card.className = 'bg-white shadow border border-gray-200 rounded-lg overflow-hidden';
-
-
-                                const cardHeader = document.createElement('div');
-                                cardHeader.className = 'p-4 cursor-pointer hover:bg-gray-50';
-                                
-                                const tglValidasi = pinjaman.tanggal_validasi ? new Date(pinjaman.tanggal_validasi).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
-                                const jmlSetuju = pinjaman.status === 'disetujui' ? `Rp ${parseInt(pinjaman.jumlah_disetujui).toLocaleString('id-ID')}` : '-';
-                                
-                                // Logika Status (Termasuk Lunas)
-                                let statusClass = '';
-                                let statusText = '';
-                                if (pinjaman.status === 'disetujui') {
-                                    if (pinjaman.sisa_hutang <= 0) {
-                                        statusText = 'Lunas';
-                                        statusClass = 'bg-blue-100 text-blue-800';
-                                    } else {
-                                        statusText = 'Disetujui (Aktif)';
-                                        statusClass = 'bg-green-100 text-green-800';
-                                    }
-                                } else if (pinjaman.status === 'ditolak') {
-                                    statusText = 'Ditolak';
-                                    statusClass = 'bg-red-100 text-red-800';
-                                } else {
-                                    statusText = pinjaman.status.charAt(0).toUpperCase() + pinjaman.status.slice(1);
-                                    statusClass = 'bg-gray-100 text-gray-800';
-                                }
-                                
-                                cardHeader.innerHTML = `
-                                    <div class="flex justify-between items-center">
-                                        <div>
-                                            <p class="text-sm text-gray-500">Divalidasi: ${tglValidasi}</p>
-                                            <p class="font-semibold text-gray-800">Jumlah: ${jmlSetuju}</p>
-                                        </div>
-                                        <div class="text-right">
-                                            <span class="px-2 py-1 text-xs font-semibold rounded-full ${statusClass}">${statusText}</span>
-                                            <span class="text-xs text-gray-400 block mt-1">Klik untuk lihat riwayat bayar ▼</span>
-                                        </div>
-                                    </div>
-                                `;
-
-
-                                const cardBody = document.createElement('div');
-                                cardBody.className = 'p-4 bg-gray-50 border-t border-gray-200 hidden'; // <-- 'hidden' by default
-                                
-                                let paymentsHTML = '<h5 class="font-semibold mb-2 text-sm text-gray-700">Riwayat Pembayaran:</h5>';
-                                if (pinjaman.pembayaran && pinjaman.pembayaran.length > 0) {
-                                    paymentsHTML += '<ul class="list-disc list-inside space-y-1 text-sm">';
-                                    pinjaman.pembayaran.forEach(pembayaran => {
-                                        const tglBayar = new Date(pembayaran.tanggal_bayar).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
-                                        const jmlBayar = `Rp ${parseInt(pembayaran.jumlah_bayar).toLocaleString('id-ID')}`;
-                                        
-
-                                        let buktiLink = '';
-                                        if (pembayaran.bukti_transfer_path) {
-                                            const imageUrl = `${window.location.origin}/storage/${pembayaran.bukti_transfer_path}`;
-                                            buktiLink = ` <a href="${imageUrl}" target="_blank" class="ml-2 px-2 py-0.5 text-xs font-medium text-white bg-blue-500 rounded hover:bg-blue-600">Lihat Bukti</a>`;
-                                        }
-
-                                        paymentsHTML += `<li><strong>${tglBayar}</strong>: ${jmlBayar} ${buktiLink}</li>`;
-                                    });
-                                    paymentsHTML += '</ul>';
-                                } else {
-                                    paymentsHTML += '<p class="text-sm text-gray-500">Belum ada riwayat pembayaran.</p>';
-                                }
-                                cardBody.innerHTML = paymentsHTML;
-
-
-                                cardHeader.addEventListener('click', () => {
-                                    cardBody.classList.toggle('hidden');
-                                });
-                                
-
-                                const cardFooter = document.createElement('div');
-                                cardFooter.className = 'p-4 bg-gray-50 border-t border-gray-200 text-right';
-
-                                if (pinjaman.status === 'disetujui' && pinjaman.sisa_hutang > 0) {
-                                    const transferButton = document.createElement('button');
-                                    transferButton.type = 'button';
-                                    transferButton.className = 'px-3 py-1 text-xs font-medium text-white bg-orange-500 rounded hover:bg-orange-600';
-                                    transferButton.textContent = 'Transfer Pinjaman';
-                                    const currentAnggotaName = data.anggota ? data.anggota.nama : 'Nasabah Ini';
-                                    transferButton.onclick = function() {
-                                        openTransferModal(pinjaman.id, currentAnggotaName);
-                                    };
-                                    cardFooter.appendChild(transferButton);
-                                }
-                                
-                                
-                                card.appendChild(cardHeader);
-                                card.appendChild(cardBody);
-                                if (cardFooter.hasChildNodes()) {
-                                    card.appendChild(cardFooter);
-                                }
-                                riwayatListDiv.appendChild(card);
-                            });
-                        } else {
-                            riwayatListDiv.innerHTML = '<div class="text-center py-4 text-gray-500">Nasabah ini belum memiliki riwayat validasi pinjaman.</div>';
-                        }
-                        resultArea.classList.remove('hidden');
-                    } else {
-                        searchFeedback.textContent = data.message || 'Gagal mengambil data.';
-                        searchFeedback.className = 'mb-4 text-sm text-red-600';
+            if (payments.length === 0) {
+                noMsg.classList.remove('hidden');
+            } else {
+                noMsg.classList.add('hidden');
+                
+                // Loop data pembayaran
+                payments.forEach(pay => {
+                    const date = new Date(pay.tanggal_bayar).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+                    const amount = parseInt(pay.jumlah_bayar).toLocaleString('id-ID');
+                    
+                    // Cek Bukti Gambar
+                    let buktiBtn = '<span class="text-gray-400 italic text-xs">Tidak ada bukti</span>';
+                    if (pay.bukti_transfer_path) {
+                        const url = `{{ asset('storage') }}/${pay.bukti_transfer_path}`;
+                        buktiBtn = `<a href="${url}" target="_blank" class="px-3 py-1 bg-indigo-100 text-indigo-700 text-xs font-bold rounded hover:bg-indigo-200">Lihat Foto 📷</a>`;
                     }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    searchFeedback.textContent = 'Terjadi kesalahan. Coba lagi.';
-                    searchFeedback.className = 'mb-4 text-sm text-red-600';
+
+                    const row = `
+                        <tr class="bg-white border-b hover:bg-gray-50">
+                            <td class="px-4 py-3 font-medium text-gray-900">${date}</td>
+                            <td class="px-4 py-3 text-green-600 font-bold">Rp ${amount}</td>
+                            <td class="px-4 py-3 text-center">${buktiBtn}</td>
+                        </tr>
+                    `;
+                    tbody.innerHTML += row;
                 });
-            });
-        });
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        // === FUNGSI MODAL TRANSFER ===
+        function openTransferModal(id, nama) {
+            const form = document.getElementById('transferForm');
+            const modalName = document.getElementById('modal-current-anggota');
+            const modal = document.getElementById('transferModal');
+
+            form.action = `/admin/pinjaman/${id}/transfer`;
+            modalName.textContent = nama;
+            modal.classList.remove('hidden');
+        }
+
+        // TUTUP MODAL SAAT KLIK DILUAR
+        window.onclick = function(event) {
+            const historyModal = document.getElementById('historyModal');
+            const transferModal = document.getElementById('transferModal');
+            if (event.target == historyModal) historyModal.classList.add('hidden');
+            if (event.target == transferModal) transferModal.classList.add('hidden');
+        }
     </script>
-    @endpush
 </x-app-layout>

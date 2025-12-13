@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\Absensi;
 use App\Models\PengaturanAbsensi;
 use Illuminate\Http\Request;
+use App\Models\AlatAbsenLog;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 
@@ -39,93 +40,103 @@ class GajiController extends Controller
      */
     public function hitungPotongan(Request $request)
     {
-        $userId = $request->user_id;
-        $bulan = $request->bulan;
-        $tahun = $request->tahun;
-        $gajiPokok = $request->gaji_pokok;
+        // 1. Ambil Input dari AJAX
+        $userId    = $request->user_id;
+        $bulan     = $request->bulan;
+        $tahun     = $request->tahun;
+        $gajiPokok = $request->gaji_pokok ?? 0;
 
-        // 1. Ambil Pengaturan
-        $setting = PengaturanAbsensi::first();
-        $hariKerjaStandar = $setting ? $setting->hari_kerja_per_bulan : 26; 
-        $persenDendaTelat = $setting ? $setting->potongan_per_terlambat : 1.00;
+        // 2. Cek User & ID Fingerprint
+        $user = User::find($userId);
+        if (!$user) return response()->json(['error' => 'Pegawai tidak ditemukan']);
 
-        // 2. Hitung Data Absensi
-        $dataAbsensi = Absensi::where('user_id', $userId)
-                        ->whereMonth('waktu_absensi', $bulan)
-                        ->whereYear('waktu_absensi', $tahun)
-                        ->get();
+        // Jika pegawai belum menghubungkan jari, anggap kehadiran 0
+        if (!$user->fingerprint_id) {
+            return response()->json([
+                'jumlah_hadir' => 0,
+                'jumlah_terlambat' => 0,
+                'jumlah_alpa' => 0,
+                'nominal_potongan_alpa' => 0,
+                'nominal_potongan_terlambat' => 0
+            ]);
+        }
 
-        // Hitung Hari Hadir
-        $jumlahHadir = $dataAbsensi->groupBy(function($date) {
-            return Carbon::parse($date->waktu_absensi)->format('Y-m-d');
-        })->count();
+        // 3. Konfigurasi Aturan (Bisa dipindah ke database setting nanti)
+        $jamMasukBatas = '08:00:00';
+        $dendaPerTelat = 50000;  // Rp 50.000 per telat
+        $dendaPerAlpa  = 100000; // Rp 100.000 per alpa
 
-        $jumlahTerlambat = $dataAbsensi->where('status', 'terlambat')->count();
+        // 4. Ambil Data Log Absensi dari IoT
+        $logs = AlatAbsenLog::where('fingerprint_id', $user->fingerprint_id)
+                    ->whereMonth('created_at', $bulan)
+                    ->whereYear('created_at', $tahun)
+                    ->whereIn('action', ['verification_success', 'enroll']) // Ambil yang sukses saja
+                    ->get();
 
-        // Hitung Alpa
-        $jumlahAlpa = max(0, $hariKerjaStandar - $jumlahHadir);
+        // 5. Logika Perhitungan Absensi
+        $jumlahHadir = 0;
+        $jumlahTerlambat = 0;
 
-        // 3. Hitung Nominal
-        $gajiHarian = ($gajiPokok > 0) ? ($gajiPokok / $hariKerjaStandar) : 0;
+        // Grouping berdasarkan tanggal (agar scan berkali-kali sehari tetap dihitung 1 kehadiran)
+        $logsPerHari = $logs->groupBy(function($date) {
+            return Carbon::parse($date->created_at)->format('Y-m-d');
+        });
 
-        $potonganAlpa = $jumlahAlpa * $gajiHarian;
-        $potonganTelat = $jumlahTerlambat * ($persenDendaTelat / 100) * $gajiHarian;
+        foreach ($logsPerHari as $tanggal => $harian) {
+            $jumlahHadir++; // Hitung kehadiran
 
+            // Ambil waktu scan pertama hari itu
+            $scanPertama = $harian->sortBy('created_at')->first();
+            $jamMasuk = Carbon::parse($scanPertama->created_at)->format('H:i:s');
+
+            // Cek Keterlambatan
+            if ($jamMasuk > $jamMasukBatas) {
+                $jumlahTerlambat++;
+            }
+        }
+
+        // 6. Hitung Alpha (Mangkir)
+        // Hitung total hari kerja efektif sampai hari ini (Senin-Jumat)
+        $totalHariKerja = 0;
+        $startOfMonth = Carbon::createFromDate($tahun, $bulan, 1);
+        $endOfMonth   = $startOfMonth->copy()->endOfMonth();
+        
+        // Batasi perhitungan sampai hari ini saja jika bulan berjalan
+        $today = Carbon::now();
+        if ($endOfMonth > $today) {
+            $endOfMonth = $today;
+        }
+
+        // Loop hitung hari kerja (Senin-Jumat)
+        for ($date = $startOfMonth; $date->lte($endOfMonth); $date->addDay()) {
+            if (!$date->isWeekend()) {
+                $totalHariKerja++;
+            }
+        }
+
+        // Jumlah Alpa = Total Hari Kerja Seharusnya - Jumlah Hadir
+        // (Pastikan tidak minus)
+        $jumlahAlpa = max(0, $totalHariKerja - $jumlahHadir);
+
+        // 7. Hitung Nominal Rupiah
+        $totalPotonganTelat = $jumlahTerlambat * $dendaPerTelat;
+        $totalPotonganAlpa  = $jumlahAlpa * $dendaPerAlpa;
+
+        // 8. Kirim Response JSON ke View
         return response()->json([
             'jumlah_hadir' => $jumlahHadir,
-            'jumlah_alpa' => $jumlahAlpa,
             'jumlah_terlambat' => $jumlahTerlambat,
-            'nominal_potongan_alpa' => round($potonganAlpa),
-            'nominal_potongan_terlambat' => round($potonganTelat)
+            'jumlah_alpa' => $jumlahAlpa,
+            'nominal_potongan_terlambat' => $totalPotonganTelat,
+            'nominal_potongan_alpa' => $totalPotonganAlpa
         ]);
     }
 
-    /**
-     * Menyimpan data gaji baru ke database.
-     */
     public function store(Request $request)
     {
-        // 1. Validasi Input (Sesuai dengan name di form HTML)
-        $request->validate([
-            'user_id' => 'required|exists:users,id',
-            'gaji_pokok' => 'required|numeric|min:0',
-            'tanggal_gaji' => 'required|date',
-            // Input hidden/readonly dari kalkulasi otomatis
-            'jumlah_hadir' => 'required|integer',
-            'jumlah_alpa' => 'required|integer',
-            'nominal_potongan_alpa' => 'required|numeric',
-            'nominal_potongan_terlambat' => 'required|numeric',
-        ]);
-
-        // 2. Ambil nilai opsional (default 0 jika kosong)
-        $tunjangan = $request->tunjangan ?? 0;
-        $potonganLain = $request->potongan_lain ?? 0; // Di form name="potongan_lain"
-        
-        // 3. Hitung Total Gaji Bersih di Server
-        // Rumus: (Gaji Pokok + Tunjangan) - (Potongan Alpa + Potongan Telat + Potongan Lain)
-        $totalBersih = ($request->gaji_pokok + $tunjangan) - 
-                       ($request->nominal_potongan_alpa + $request->nominal_potongan_terlambat + $potonganLain);
-
-        // 4. Simpan ke Database
-        Gaji::create([
-            'user_id' => $request->user_id,
-            'gaji_pokok' => $request->gaji_pokok,
-            'tunjangan' => $tunjangan,
-            'potongan' => $potonganLain, // Mapping ke kolom 'potongan' di DB
-            
-            // Data Absensi
-            'jumlah_hadir' => $request->jumlah_hadir,
-            'jumlah_alpa' => $request->jumlah_alpa,
-            'jumlah_terlambat' => $request->jumlah_terlambat ?? 0, // Gunakan 0 jika tidak ada input hidden ini
-            'nominal_potongan_alpa' => $request->nominal_potongan_alpa,
-            'nominal_potongan_terlambat' => $request->nominal_potongan_terlambat,
-            
-            'total_gaji' => $totalBersih,
-            'tanggal_gaji' => $request->tanggal_gaji,
-            'catatan' => $request->catatan,
-        ]);
-
-        return redirect()->route('sekertaris.gaji.index')->with('success', 'Data gaji berhasil disimpan.');
+        // Simpan data gaji final ke database
+        Gaji::create($request->except(['_token']));
+        return redirect()->route('sekertaris.gaji.index')->with('success', 'Data Gaji Berhasil Disimpan!');
     }
 
     // ===============================================

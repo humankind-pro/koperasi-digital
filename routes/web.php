@@ -99,10 +99,16 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('/riwayat-pinjaman', [AdminValidasiController::class, 'riwayatPinjaman'])->name('riwayat.pinjaman');
     Route::get('/search/nik-riwayat', [AdminValidasiController::class, 'searchNikRiwayatAdmin'])->name('search.nik.riwayat');
     Route::patch('/pinjaman/{pinjaman}/transfer', [AdminValidasiController::class, 'transferPinjaman'])->name('pinjaman.transfer');
-
+    Route::get('/validasi/cek-ai/{id}', [AdminValidasiController::class, 'cekAi'])->name('validasi.cek_ai');
     //Cek gaji
     Route::get('/gaji-saya', [GajiController::class, 'riwayatGajiSaya'])->name('gaji.saya');
+    Route::get('/absensi/rekap', [AbsensiController::class, 'indexAdmin'])->name('absensi.rekap');
+
+    // 2. Cek Absensi SAYA SENDIRI (TAMBAHKAN INI)
+    // Kita panggil method 'index' milik karyawan, karena fungsinya sama: lihat data sendiri
+    Route::get('/absensi/saya', [AbsensiController::class, 'index'])->name('absensi.saya');
 });
+
 
 
 Route::middleware('auth')->group(function () {
@@ -123,7 +129,11 @@ Route::middleware(['auth', 'role:karyawan'])->group(function () {
     Route::resource('anggota', AnggotaController::class);
     Route::get('/anggota/search/nik', [AnggotaController::class, 'searchByNik'])->name('anggota.search.nik');
     
-    Route::get('/karyawan/absensi', [AbsensiController::class, 'index'])->name('karyawan.absensi');
+    Route::get('/karyawan/absensi', [AbsensiController::class, 'index'])->name('absensi.index');
+    
+    // Proses Menghubungkan ID Fingerprint ke User
+    Route::post('/karyawan/absensi/hubungkan', [AbsensiController::class, 'hubungkanKartu'])->name('absensi.hubungkan');
+Route::get('/absensi/riwayat', [AbsensiController::class, 'index'])->name('karyawan.absensi.index');
 
     Route::get('/riwayat-pinjaman/cari', [AnggotaController::class, 'showSearchRiwayatForm'])->name('anggota.riwayat.search.form');
     // Route untuk menangani pencarian AJAX (mirip sebelumnya)
@@ -131,11 +141,18 @@ Route::middleware(['auth', 'role:karyawan'])->group(function () {
 
     //cek gaji
     Route::get('/gaji-saya', [GajiController::class, 'riwayatGajiSaya'])->name('karyawan.gaji.saya');
+
+
+Route::get('/transaksi/pinjaman-aktif', [App\Http\Controllers\PembayaranController::class, 'indexPinjamanAktif'])->name('pinjaman.aktif');
+    Route::get('/riwayat-pinjaman', [App\Http\Controllers\PinjamanController::class, 'riwayatPinjaman'])
+         ->name('karyawan.pinjaman.riwayat');
+
+    // 2. Route Halaman Pencarian (Halaman yang kita edit di Langkah 1)
+    Route::get('/riwayat-pinjaman/cari', [App\Http\Controllers\AnggotaController::class, 'showSearchRiwayatForm'])
+         ->name('anggota.riwayat.search.form');
+    // Proses bayar cicilan
+    Route::post('/transaksi/bayar', [App\Http\Controllers\PembayaranController::class, 'storePembayaran'])->name('pembayaran.store');
 });
-
-Route::get('/pinjaman-aktif', [PembayaranController::class, 'indexPinjamanAktif'])->name('karyawan.pinjaman.aktif');
-    Route::post('/pembayaran', [PembayaranController::class, 'storePembayaran'])->name('karyawan.pembayaran.store');
-
 
     // ...
 
@@ -151,5 +168,12 @@ Route::middleware(['auth', 'role:sekertaris'])->prefix('sekertaris')->name('seke
     Route::put('/pengaturan-absensi', [SekertarisController::class, 'updatePengaturan'])->name('pengaturan.update');
     Route::get('/gaji/hitung-otomatis', [GajiController::class, 'hitungPotongan'])->name('gaji.hitung');
     // Nanti tambah route absensi di sini
+Route::get('/absensi/monitoring', [AbsensiController::class, 'monitor'])
+         ->name('karyawan.registrasi.create'); 
+         // Nama route ini saya samakan dengan menu navigasi Anda sebelumnya
+    
+    // B. Aksi Menyimpan / Menghubungkan ID (Saat tombol ditekan)
+    Route::post('/absensi/hubungkan', [AbsensiController::class, 'hubungkanKartu'])
+         ->name('absensi.hubungkan');
 });
 require __DIR__.'/auth.php';

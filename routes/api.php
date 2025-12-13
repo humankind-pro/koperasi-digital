@@ -2,18 +2,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\AbsensiController; // Pastikan path ini benar
+use App\Http\Controllers\AbsensiController;
 
-/*
-|--------------------------------------------------------------------------
-| API Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you can register API routes for your application. These
-| routes are loaded by the RouteServiceProvider and all of them will
-| be assigned to the "api" middleware group. Make something great!
-|
-*/
-
-// Route untuk ESP32
-Route::post('/absensi', [AbsensiController::class, 'store']);
+// Route untuk IoT (Tanpa Login/Auth sementara agar mudah)
+Route::post('/iot/absen', [AbsensiController::class, 'storeFromIot']);

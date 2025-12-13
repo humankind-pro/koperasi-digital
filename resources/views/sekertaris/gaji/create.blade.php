@@ -25,7 +25,7 @@
                         <div class="md:col-span-2">
                             <label class="block text-sm font-medium text-gray-700">Gaji Pokok (Rp)</label>
                             <input type="number" name="gaji_pokok" id="gaji_pokok" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm text-lg font-bold" placeholder="0" oninput="hitungGaji()">
-                            <p class="text-xs text-gray-500 mt-1">*Gaji Pokok akan dibagi 26 untuk mendapatkan tarif harian.</p>
+                            <p class="text-xs text-gray-500 mt-1">*Pastikan Gaji Pokok sudah terisi.</p>
                         </div>
                     </div>
 
@@ -36,28 +36,23 @@
                             
                             <div>
                                 <label class="text-xs text-gray-500">Masuk (Hari)</label>
-                                {{-- PENTING: name="jumlah_hadir" sesuai database --}}
                                 <input type="text" name="jumlah_hadir" id="jumlah_hadir" class="w-full bg-white border-none font-bold" readonly value="0">
                             </div>
                             <div>
                                 <label class="text-xs text-gray-500">Alpa (Hari)</label>
-                                {{-- PENTING: name="jumlah_alpa" sesuai database --}}
                                 <input type="text" name="jumlah_alpa" id="jumlah_alpa" class="w-full bg-white border-none font-bold text-red-600" readonly value="0">
                             </div>
                             <div>
                                 <label class="text-xs text-gray-500">Terlambat (Kali)</label>
-                                {{-- PENTING: name="jumlah_terlambat" sesuai database --}}
                                 <input type="text" name="jumlah_terlambat" id="jumlah_terlambat" class="w-full bg-white border-none font-bold text-orange-600" readonly value="0">
                             </div>
                             
                             <div class="md:col-span-1">
                                 <label class="text-xs font-bold text-gray-700">Potongan Alpa (Rp)</label>
-                                {{-- PENTING: name="nominal_potongan_alpa" sesuai database --}}
                                 <input type="number" name="nominal_potongan_alpa" id="potongan_alpa" class="w-full bg-gray-200 border-gray-300 rounded text-red-700 font-bold" readonly value="0">
                             </div>
                             <div class="md:col-span-1">
                                 <label class="text-xs font-bold text-gray-700">Potongan Telat (Rp)</label>
-                                {{-- PENTING: name="nominal_potongan_terlambat" sesuai database --}}
                                 <input type="number" name="nominal_potongan_terlambat" id="potongan_terlambat" class="w-full bg-gray-200 border-gray-300 rounded text-red-700 font-bold" readonly value="0">
                             </div>
                         </div>
@@ -71,7 +66,6 @@
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Potongan Lain-lain (Rp)</label>
-                            {{-- PENTING: name="potongan_lain" untuk dipetakan ke kolom 'potongan' di Controller --}}
                             <input type="number" name="potongan_lain" id="potongan_lain" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" value="0" oninput="updateTotal()">
                         </div>
                         <div class="md:col-span-2">
@@ -80,10 +74,13 @@
                         </div>
                     </div>
 
-                    {{-- TOTAL --}}
+                    {{-- TOTAL & INPUT HIDDEN --}}
                     <div class="flex justify-between items-center border-t pt-4">
                         <div class="text-lg font-medium text-gray-600">Total Gaji Bersih:</div>
+                        
                         <div class="text-3xl font-bold text-indigo-700" id="display_total">Rp 0</div>
+
+                        <input type="hidden" name="total_gaji" id="total_gaji_input" value="0">
                     </div>
 
                     <div class="mt-6 text-right">
@@ -108,21 +105,23 @@
             fetch(`{{ route('sekertaris.gaji.hitung') }}?user_id=${userId}&bulan=${date.getMonth()+1}&tahun=${date.getFullYear()}&gaji_pokok=${gajiPokok}`)
                 .then(res => res.json())
                 .then(data => {
-                    // Isi Field dengan ID yang sesuai
+                    // Isi Field Absensi
                     document.getElementById('jumlah_hadir').value = data.jumlah_hadir;
                     document.getElementById('jumlah_alpa').value = data.jumlah_alpa;
                     document.getElementById('jumlah_terlambat').value = data.jumlah_terlambat;
                     
-                    // Isi Nominal Potongan
+                    // Isi Nominal Potongan Otomatis
                     document.getElementById('potongan_alpa').value = data.nominal_potongan_alpa;
                     document.getElementById('potongan_terlambat').value = data.nominal_potongan_terlambat;
                     
+                    // Hitung Ulang Total & Update Input Hidden
                     updateTotal();
                 })
                 .catch(err => console.error(err));
         }
 
         function updateTotal() {
+            // Ambil semua nilai
             const gapok = parseFloat(document.getElementById('gaji_pokok').value) || 0;
             const tunjangan = parseFloat(document.getElementById('tunjangan').value) || 0;
             
@@ -130,8 +129,14 @@
             const potTelat = parseFloat(document.getElementById('potongan_terlambat').value) || 0;
             const potLain = parseFloat(document.getElementById('potongan_lain').value) || 0;
 
+            // Rumus Total
             const total = (gapok + tunjangan) - (potAlpa + potTelat + potLain);
+
+            // 1. Tampilkan text (Format Rupiah)
             document.getElementById('display_total').innerText = 'Rp ' + total.toLocaleString('id-ID');
+
+            // 2. Isi Input Hidden (Agar terkirim ke Controller)
+            document.getElementById('total_gaji_input').value = total;
         }
     </script>
 </x-app-layout>

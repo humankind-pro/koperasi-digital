@@ -4,88 +4,111 @@ namespace App\Http\Controllers;
 
 use App\Models\Pinjaman;
 use App\Models\Pembayaran;
-use App\Models\Anggota;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
-use Illuminate\Support\Facades\Storage; // <-- TAMBAHKAN INI
+use Illuminate\Support\Facades\Storage;
 
 class PembayaranController extends Controller
 {
-    // ... method indexPinjamanAktif() tidak berubah ...
-    public function indexPinjamanAktif()
-{
-    $pinjamanAktif = Pinjaman::where('status', 'disetujui')
-                            ->where('diajukan_oleh_user_id', Auth::id()) // <-- KUNCI PEMBATASAN
-                            ->with('anggota')
-                            ->latest('tanggal_validasi')
-                            ->paginate(10);
-    
-    return view('karyawans.pembayaran.index', compact('pinjamanAktif'));
-}
+    /**
+     * Menampilkan daftar pinjaman aktif milik nasabah yang dihandle karyawan ini.
+     */
+    public function indexPinjamanAktif(Request $request)
+    {
+        $query = Pinjaman::with('anggota')
+            ->where('status', 'disetujui') // Hanya pinjaman aktif
+            ->where('diajukan_oleh_user_id', Auth::id()); // Filter: Hanya nasabah binaan karyawan ini
+
+        // (Opsional) Fitur Search Nama Nasabah
+        if ($request->has('search')) {
+            $search = $request->search;
+            $query->whereHas('anggota', function($q) use ($search) {
+                $q->where('nama', 'like', "%{$search}%");
+            });
+        }
+
+        $pinjamanAktif = $query->latest('tanggal_validasi')->paginate(10);
+        
+        return view('karyawans.pembayaran.index_pinjaman_aktif', compact('pinjamanAktif'));
+    }
 
     /**
-     * Menyimpan data pembayaran baru dan update sisa hutang serta skor kredit.
+     * Menyimpan data pembayaran baru dan update sisa hutang.
      */
     public function storePembayaran(Request $request)
     {
-        // 1. Tambahkan validasi untuk file gambar
+        // 1. Validasi Input
         $request->validate([
-            'pinjaman_id' => 'required|exists:pinjaman,id',
-            'jumlah_bayar' => 'required|numeric|min:1',
-            'tanggal_bayar' => 'required|date',
-            'bukti_transfer' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048', // Maks 2MB
+            'pinjaman_id'    => 'required|exists:pinjaman,id',
+            'jumlah_bayar'   => 'required|numeric|min:1',
+            'tanggal_bayar'  => 'required|date',
+            'bukti_transfer' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048', // Max 2MB
         ]);
 
         DB::beginTransaction();
         try {
+            // 2. Ambil Data Pinjaman (Lock For Update untuk mencegah race condition)
             $pinjaman = Pinjaman::where('id', $request->pinjaman_id)
-                            ->where('diajukan_oleh_user_id', Auth::id()) // <-- TAMBAHAN KEAMANAN
-                            ->firstOrFail(); // Gunakan firstOrFail agar 404 jika mencoba bayar punya orang lain
+                                ->where('diajukan_oleh_user_id', Auth::id()) // Keamanan: Pastikan milik karyawan ini
+                                ->lockForUpdate()
+                                ->firstOrFail();
 
-            // ... (Guard, logika skor kredit, dll. tidak berubah) ...
-            if (is_null($pinjaman->tenggat_berikutnya)) { /* ... */ }
-            $anggota = $pinjaman->anggota;
-            // ... (dst) ...
-            $anggota->save();
-
-
-            // ===============================================
-            // LOGIKA UPLOAD BUKTI TRANSFER
-            // ===============================================
+            // 3. Proses Upload Bukti Transfer (Jika ada)
             $buktiPath = null;
             if ($request->hasFile('bukti_transfer')) {
-                // Buat nama file unik: [id_pinjaman]_[timestamp].[ekstensi]
-                $filename = $pinjaman->id . '_' . time() . '.' . $request->file('bukti_transfer')->getClientOriginalExtension();
+                $file = $request->file('bukti_transfer');
+                // Nama file unik: bayar_[ID]_[TIMESTAMP].[EXT]
+                $filename = 'bayar_' . $pinjaman->id . '_' . time() . '.' . $file->getClientOriginalExtension();
                 
-                // Simpan file ke 'storage/app/public/bukti_transfer'
-                // $buktiPath akan berisi 'bukti_transfer/namafile.jpg'
-                $buktiPath = $request->file('bukti_transfer')->storeAs('bukti_transfer', $filename, 'public');
+                // Simpan ke storage/app/public/bukti_transfer
+                $buktiPath = $file->storeAs('bukti_transfer', $filename, 'public');
             }
-            // ===============================================
 
-
-            // 1. Catat pembayaran
+            // 4. Simpan Data ke Tabel Pembayaran
             Pembayaran::create([
-                'pinjaman_id' => $pinjaman->id,
-                'jumlah_bayar' => $request->jumlah_bayar,
-                'tanggal_bayar' => $request->tanggal_bayar,
-                'diproses_oleh_user_id' => Auth::id(),
-                'bukti_transfer_path' => $buktiPath, // <-- Simpan path-nya
+                'pinjaman_id'           => $pinjaman->id,
+                'jumlah_bayar'          => $request->jumlah_bayar,
+                'tanggal_bayar'         => $request->tanggal_bayar,
+                'diproses_oleh_user_id' => Auth::id(), // Karyawan yang input
+                'bukti_transfer_path'   => $buktiPath,
             ]);
 
-            // ... (Logika update sisa hutang & tenggat tidak berubah) ...
-            $pinjaman->sisa_hutang -= $request->jumlah_bayar;
-            if ($pinjaman->sisa_hutang <= 0) { /* ... */ }
-            $pinjaman->save(); 
+            // 5. Logika Update Sisa Hutang
+            $sisaHutangBaru = $pinjaman->sisa_hutang - $request->jumlah_bayar;
+
+            // Mencegah nilai minus (jika bayar kelebihan)
+            if ($sisaHutangBaru < 0) {
+                $sisaHutangBaru = 0;
+            }
+
+            $pinjaman->sisa_hutang = $sisaHutangBaru;
+
+            // 6. Cek Lunas
+            if ($sisaHutangBaru == 0) {
+                $pinjaman->status = 'lunas';
+                $pinjaman->tenggat_berikutnya = null; // Hapus tenggat jika lunas
+
+                // (Opsional) Update Skor Kredit Anggota
+                $anggota = $pinjaman->anggota;
+                if ($anggota) {
+                    $anggota->increment('skor_kredit', 2); // Tambah poin karena lunas
+                }
+            } else {
+                // (Opsional) Jika belum lunas, update tenggat berikutnya (misal +1 bulan)
+                // $pinjaman->tenggat_berikutnya = Carbon::parse($pinjaman->tenggat_berikutnya)->addMonth();
+            }
+
+            $pinjaman->save(); // Simpan perubahan ke tabel Pinjaman
 
             DB::commit();
-            return redirect()->route('karyawan.pinjaman.aktif')->with('success', 'Pembayaran berhasil dicatat.');
+
+            return redirect()->route('karyawan.pinjaman.aktif')
+                             ->with('success', 'Pembayaran berhasil dicatat. Sisa hutang: Rp ' . number_format($sisaHutangBaru));
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->withErrors(['error' => 'Gagal mencatat pembayaran. ' . $e->getMessage()])->withInput();
+            return back()->with('error', 'Gagal mencatat pembayaran: ' . $e->getMessage())->withInput();
         }
     }
 }
