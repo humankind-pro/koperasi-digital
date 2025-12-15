@@ -738,24 +738,101 @@
             const btnCancelEdit = document.getElementById('btn-cancel-edit');
             const btnSaveManual = document.getElementById('btn-save-manual');
             const btnSubmit = document.getElementById('btn-submit');
-            const lamaBekerjaInput = document.getElementById('lama_bekerja'); // Note: ID remains the same for JS logic
+            const lamaBekerjaInput = document.getElementById('lama_bekerja');
             const kerjaProgress = document.getElementById('kerja-progress');
             const kerjaValue = document.getElementById('kerja-value');
+            
+            // Jaminan Elements
             const adaJaminanRadio = document.querySelectorAll('input[name="ada_jaminan"]');
             const jaminanSection = document.getElementById('jaminan-section');
             const jaminanSelect = document.getElementById('jaminan');
             const jaminanLainnyaContainer = document.getElementById('jaminan-lainnya-container');
             const jaminanLainnyaInput = document.getElementById('jaminan-lainnya');
+            
             let ocrData = {};
             let isOcrSuccess = false;
-            // Lama Bekerja (Numerik) progress bar dynamic
+
+            // --- 1. LOGIC UTAMA: JAMINAN ---
+            adaJaminanRadio.forEach(radio => {
+                radio.addEventListener('change', function() {
+                    if (this.value === 'ya') {
+                        // Tampilkan Section Jaminan
+                        jaminanSection.classList.remove('hidden');
+                        
+                        // Set Required
+                        jaminanSelect.setAttribute('required', 'required');
+                    } else {
+                        // Sembunyikan Section Jaminan
+                        jaminanSection.classList.add('hidden');
+                        
+                        // Reset Value & Hapus Required
+                        jaminanSelect.value = "";
+                        jaminanSelect.removeAttribute('required');
+                        
+                        jaminanLainnyaContainer.classList.add('hidden');
+                        jaminanLainnyaInput.value = "";
+                        jaminanLainnyaInput.removeAttribute('required');
+                    }
+                });
+            });
+
+            // Logic dropdown "Lainnya"
+            jaminanSelect.addEventListener('change', function() {
+                if (this.value === 'Lainnya') {
+                    jaminanLainnyaContainer.classList.remove('hidden');
+                    jaminanLainnyaInput.setAttribute('required', 'required');
+                } else {
+                    jaminanLainnyaContainer.classList.add('hidden');
+                    jaminanLainnyaInput.value = "";
+                    jaminanLainnyaInput.removeAttribute('required');
+                }
+            });
+
+            // --- 2. LOGIC SUBMIT FORM ---
+            document.getElementById('formAnggota').addEventListener('submit', function(e) {
+                // Cek status tempat tinggal (Rumah Orang Tua -> Milik Orang Tua)
+                const statusTinggalInput = document.querySelector('input[name="status_tempat_tinggal"]:checked');
+                if (statusTinggalInput && statusTinggalInput.value === 'Rumah Orang Tua') {
+                    const hiddenInput = document.createElement('input');
+                    hiddenInput.type = 'hidden';
+                    hiddenInput.name = 'status_tempat_tinggal';
+                    hiddenInput.value = 'Milik Orang Tua';
+                    this.appendChild(hiddenInput);
+                    statusTinggalInput.disabled = true; 
+                }
+
+                // Cek Jaminan
+                const adaJaminan = document.querySelector('input[name="ada_jaminan"]:checked');
+                
+                // Jika user memilih "Tidak Ada Jaminan", pastikan input jaminan benar-benar kosong agar tidak error validasi server
+                if (adaJaminan && adaJaminan.value === 'tidak') {
+                    // Hapus atribut name sementara agar tidak terkirim ke server (jika server validasi required)
+                    // Atau biarkan kosong (value="") jika server mengizinkan nullable
+                    jaminanSelect.value = ""; 
+                    jaminanLainnyaInput.value = "";
+                }
+
+                // Validasi Client-Side Tambahan (Optional)
+                if (adaJaminan && adaJaminan.value === 'ya' && jaminanSelect.value === 'Lainnya' && !jaminanLainnyaInput.value.trim()) {
+                    e.preventDefault();
+                    showNotification('❌ Harap isi keterangan jaminan lainnya.', 'error');
+                    jaminanLainnyaInput.focus();
+                    return;
+                }
+
+                // UI Loading
+                console.log('📤 Form submitting...');
+                btnSubmit.disabled = true;
+                btnSubmit.innerHTML = '<svg class="w-5 h-5 inline mr-2 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Mengirim...';
+            });
+
+            // --- 3. LOGIC LAMA BEKERJA (PROGRESS BAR) ---
             if (lamaBekerjaInput) {
                 lamaBekerjaInput.addEventListener('input', function() {
-                    const value = parseFloat(this.value) || 0; // Ambil nilai sebagai angka, jika bukan angka maka 0
-                    // Update progress bar (10 tahun = 100%)
-                    let percentage = Math.min(value * 10, 100); // Misalnya 10 tahun pengalaman = 100%
+                    const value = parseFloat(this.value) || 0;
+                    let percentage = Math.min(value * 10, 100);
                     kerjaProgress.style.width = `${percentage}%`;
-                    // Change color based on experience
+                    
                     if (value < 1) {
                         kerjaProgress.style.background = 'linear-gradient(to right, #ff6b6b, #ee5a24)';
                     } else if (value < 3) {
@@ -763,40 +840,31 @@
                     } else {
                         kerjaProgress.style.background = 'linear-gradient(to right, #00d2d3, #00a8ff)';
                     }
-                    // Update display text
                     kerjaValue.textContent = value === 0 ? '0 tahun' : `${value} tahun`;
-                    // Auto-focus next field if valid
-                    if (value >= 0.5 && value.toString().length > 0) { // Minimal 0.5 tahun
-                        setTimeout(() => {
-                            document.querySelector('input[name="status_tempat_tinggal"]:checked').focus();
-                            if (!document.querySelector('input[name="status_tempat_tinggal"]:checked')) {
-                                // Jika tidak ada yang dipilih, fokus ke yang pertama
-                                document.querySelector('input[name="status_tempat_tinggal"]').focus();
-                            }
-                        }, 300);
-                    }
                 });
-                // Initialize with default value if empty
-                if (!lamaBekerjaInput.value) {
-                    lamaBekerjaInput.value = '1';
+                
+                // Init value
+                if (lamaBekerjaInput.value) {
                     lamaBekerjaInput.dispatchEvent(new Event('input'));
                 }
             }
-            // Preview KTP Image
+
+            // --- 4. OCR LOGIC (KTP & SELFIE) ---
             fotoKtpInput.addEventListener('change', function () {
                 const file = this.files[0];
                 if (!file) return;
-                // Show preview
+                
+                // Preview
                 const reader = new FileReader();
                 reader.onload = e => {
                     document.getElementById('img-ktp').src = e.target.result;
                     document.getElementById('preview-ktp').classList.remove('hidden');
                 };
                 reader.readAsDataURL(file);
-                // Start OCR Process
+                
                 startOCRProcess(file);
             });
-            // Preview Selfie Image
+
             fotoSelfieInput.addEventListener('change', function () {
                 if (this.files[0]) {
                     const reader = new FileReader();
@@ -807,20 +875,15 @@
                     reader.readAsDataURL(this.files[0]);
                 }
             });
-            // OCR Process
-            // OCR Process
+
+            // OCR Function
             function startOCRProcess(file) {
                 console.log('🔄 Starting OCR process...');
-                
-                // Show loading state
                 ocrLoading.classList.remove('hidden');
-                
-                // Hide result sections initially
                 ocrResult.classList.add('hidden');
                 additionalDataSection.classList.add('hidden');
                 financialDataSection.classList.add('hidden');
                 loanDataSection.classList.add('hidden');
-                
                 btnSubmit.disabled = true;
 
                 const formData = new FormData();
@@ -831,55 +894,45 @@
                     body: formData
                 })
                 .then(response => {
-                    console.log('📥 Response status:', response.status);
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                     return response.json();
                 })
                 .then(result => {
                     console.log('✅ OCR Result:', result);
                     ocrLoading.classList.add('hidden');
 
-                    // Elemen UI untuk diupdate
                     const titleEl = document.getElementById('ocr-status-title');
                     const iconEl = document.getElementById('ocr-status-icon');
                     const svgPath = document.getElementById('ocr-status-svg');
 
                     if (result.success && result.data) {
-                        // --- SUKSES: Ubah tampilan jadi Hijau & Teks Normal ---
+                        // Success State
                         if(titleEl) {
                             titleEl.innerText = "Data KTP Terdeteksi";
-                            titleEl.className = "text-xl font-bold text-cyan-800"; // Warna Hijau/Cyan
+                            titleEl.className = "text-xl font-bold text-cyan-800";
                         }
                         if(iconEl) iconEl.className = "w-10 h-10 bg-green-500 rounded-full flex items-center justify-center";
-                        if(svgPath) svgPath.setAttribute('d', "M5 13l4 4L19 7"); // Ikon Centang
+                        if(svgPath) svgPath.setAttribute('d', "M5 13l4 4L19 7");
 
-                        // Validasi NIK
                         if (!result.data.nik || result.data.nik.length !== 16) {
-                            throw new Error('NIK tidak valid atau tidak terdeteksi (harus 16 digit)');
+                            throw new Error('NIK tidak valid (harus 16 digit)');
                         }
 
                         ocrData = result.data;
                         isOcrSuccess = true;
-
-                        // Isi data ke form & preview
                         populatePreview(ocrData);
                         populateManualInputs(ocrData);
 
-                        // Tampilkan hasil sukses
                         ocrResult.classList.remove('hidden');
-                        ocrPreviewDisplay.classList.remove('hidden'); // Tampilkan tabel preview
-                        manualInputSection.classList.add('hidden'); // Sembunyikan form manual
-                        btnEditManual.classList.remove('hidden'); // Tampilkan tombol edit
+                        ocrPreviewDisplay.classList.remove('hidden');
+                        manualInputSection.classList.add('hidden');
+                        btnEditManual.classList.remove('hidden');
 
                         additionalDataSection.classList.remove('hidden');
                         financialDataSection.classList.remove('hidden');
                         loanDataSection.classList.remove('hidden');
                         btnSubmit.disabled = false;
-                        
                         showNotification('✅ Data KTP berhasil dibaca!', 'success');
-
                     } else {
                         throw new Error(result.message || 'Gagal membaca KTP');
                     }
@@ -888,12 +941,11 @@
                     console.error('❌ OCR Error:', err);
                     ocrLoading.classList.add('hidden');
 
-                    // Elemen UI untuk diupdate
+                    // Error State
                     const titleEl = document.getElementById('ocr-status-title');
                     const iconEl = document.getElementById('ocr-status-icon');
                     const svgPath = document.getElementById('ocr-status-svg');
 
-                    // --- ERROR: Ubah Teks & Ikon Jadi Merah ---
                     if(titleEl) {
                         titleEl.innerText = "Gagal Mengambil Data KTP";
                         titleEl.className = "text-xl font-bold text-red-600";
@@ -901,32 +953,29 @@
                     if(iconEl) iconEl.className = "w-10 h-10 bg-red-500 rounded-full flex items-center justify-center";
                     if(svgPath) svgPath.setAttribute('d', "M6 18L18 6M6 6l12 12"); 
 
-                    // Tampilkan Notifikasi Error
                     showNotification('Gagal mengambil data KTP', 'error');
 
-                    // Tampilkan Form Manual (Fallback)
-                    ocrResult.classList.remove('hidden'); // Container judul tetap muncul
-                    manualInputSection.classList.remove('hidden'); // Form manual muncul otomatis
-                    
-                    ocrPreviewDisplay.classList.add('hidden'); // Sembunyikan preview
-                    btnEditManual.classList.add('hidden'); // Sembunyikan tombol edit
+                    ocrResult.classList.remove('hidden');
+                    manualInputSection.classList.remove('hidden');
+                    ocrPreviewDisplay.classList.add('hidden');
+                    btnEditManual.classList.add('hidden');
 
                     additionalDataSection.classList.remove('hidden');
                     financialDataSection.classList.remove('hidden');
                     loanDataSection.classList.remove('hidden');
-                    
                     btnSubmit.disabled = false;
                     isOcrSuccess = false;
                 });
             }
-            // Edit Manual Button
+
+            // --- 5. HELPER FUNCTIONS ---
             btnEditManual.addEventListener('click', function() {
                 manualInputSection.classList.remove('hidden');
                 ocrPreviewDisplay.classList.add('hidden');
                 btnEditManual.classList.add('hidden');
                 manualInputSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             });
-            // Cancel Edit Button
+
             btnCancelEdit.addEventListener('click', function() {
                 if (isOcrSuccess) {
                     manualInputSection.classList.add('hidden');
@@ -935,7 +984,7 @@
                     populateManualInputs(ocrData);
                 }
             });
-            // Save Manual Changes
+
             btnSaveManual.addEventListener('click', function() {
                 const manualData = {
                     nik: document.getElementById('input-nik').value,
@@ -955,7 +1004,7 @@
                     pekerjaan: document.getElementById('input-pekerjaan').value,
                     gol_darah: document.getElementById('input-gol-darah').value
                 };
-                // Validate required fields
+
                 if (!manualData.nik || !manualData.nama || !manualData.jenis_kelamin) {
                     showNotification('❌ NIK, Nama, dan Jenis Kelamin wajib diisi!', 'error');
                     return;
@@ -967,18 +1016,14 @@
                 btnEditManual.classList.remove('hidden');
                 showNotification('✅ Data berhasil diperbarui!', 'success');
             });
-            // Populate Preview Display
+
             function populatePreview(data) {
                 document.getElementById('preview-nik').textContent = data.nik || '-';
                 document.getElementById('preview-nama').textContent = data.nama || '-';
-                document.getElementById('preview-ttl').textContent = 
-                    [data.tempat_lahir, data.tanggal_lahir].filter(Boolean).join(' / ') || '-';
-                document.getElementById('preview-jk').textContent = 
-                    data.jenis_kelamin === 'L' ? 'Laki-laki' : 
-                    (data.jenis_kelamin === 'P' ? 'Perempuan' : data.jenis_kelamin || '-');
+                document.getElementById('preview-ttl').textContent = [data.tempat_lahir, data.tanggal_lahir].filter(Boolean).join(' / ') || '-';
+                document.getElementById('preview-jk').textContent = data.jenis_kelamin === 'L' ? 'Laki-laki' : (data.jenis_kelamin === 'P' ? 'Perempuan' : data.jenis_kelamin || '-');
                 document.getElementById('preview-alamat').textContent = data.alamat || '-';
-                document.getElementById('preview-rtrw').textContent = 
-                    (data.rt || '000') + '/' + (data.rw || '000');
+                document.getElementById('preview-rtrw').textContent = (data.rt || '000') + '/' + (data.rw || '000');
                 document.getElementById('preview-keldesa').textContent = data.kelurahan || data.desa || '-';
                 document.getElementById('preview-kecamatan').textContent = data.kecamatan || '-';
                 document.getElementById('preview-kabkota').textContent = data.kabupaten_kota || '-';
@@ -988,7 +1033,7 @@
                 document.getElementById('preview-pekerjaan').textContent = data.pekerjaan || '-';
                 document.getElementById('preview-goldarah').textContent = data.gol_darah || '-';
             }
-            // Populate Manual Input Fields
+
             function populateManualInputs(data) {
                 document.getElementById('input-nik').value = data.nik || '';
                 document.getElementById('input-nama').value = data.nama || '';
@@ -1007,7 +1052,7 @@
                 document.getElementById('input-pekerjaan').value = data.pekerjaan || '';
                 document.getElementById('input-gol-darah').value = data.gol_darah || '';
             }
-            // Show Notification
+
             function showNotification(message, type = 'success') {
                 const notification = document.createElement('div');
                 const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
@@ -1016,67 +1061,6 @@
                 document.body.appendChild(notification);
                 setTimeout(() => notification.remove(), 3000);
             }
-            // Logic for Jaminan Section
-            adaJaminanRadio.forEach(radio => {
-                radio.addEventListener('change', function() {
-                    if (this.value === 'ya' && this.checked) {
-                        jaminanSection.classList.remove('hidden');
-                    } else if (this.value === 'tidak' && this.checked) {
-                        jaminanSection.classList.add('hidden');
-                        // Reset jaminan selection and lainnya input when "tidak" is selected
-                        jaminanSelect.value = '';
-                        jaminanLainnyaContainer.classList.add('hidden');
-                        jaminanLainnyaInput.value = '';
-                    }
-                });
-            });
-            // Logic for Jaminan Lainnya Input
-            jaminanSelect.addEventListener('change', function() {
-                if (this.value === 'Lainnya') {
-                    jaminanLainnyaContainer.classList.remove('hidden');
-                    jaminanLainnyaInput.required = true;
-                } else {
-                    jaminanLainnyaContainer.classList.add('hidden');
-                    jaminanLainnyaInput.required = false;
-                    jaminanLainnyaInput.value = ''; // Clear if switched away
-                }
-            });
-            // Form Submit Handler
-            document.getElementById('formAnggota').addEventListener('submit', function(e) {
-                // --- NEW LOGIC: Map Residence Status ---
-                const statusTinggalInput = document.querySelector('input[name="status_tempat_tinggal"]:checked');
-                if (statusTinggalInput && statusTinggalInput.value === 'Rumah Orang Tua') {
-                    // Create a hidden input to override the value sent to the server
-                    const hiddenInput = document.createElement('input');
-                    hiddenInput.type = 'hidden';
-                    hiddenInput.name = 'status_tempat_tinggal'; // Use the original name for the hidden field
-                    hiddenInput.value = 'Milik Orang Tua'; // The value expected by the model
-                    this.appendChild(hiddenInput); // Append to the form
-                    statusTinggalInput.disabled = true; // Disable the original radio button so it's not sent
-                }
-                // --- END NEW LOGIC ---
-
-                // Final validation for "Lainnya"
-                const adaJaminanYa = document.querySelector('input[name="ada_jaminan"]:checked');
-                if (adaJaminanYa && adaJaminanYa.value === 'ya') {
-                    const selectedJaminan = jaminanSelect.value;
-                    if (selectedJaminan === 'Lainnya' && !jaminanLainnyaInput.value.trim()) {
-                        e.preventDefault();
-                        showNotification('❌ Jika memilih "Lainnya", jelaskan jaminannya.', 'error');
-                        jaminanLainnyaInput.focus();
-                        return;
-                    }
-                }
-                // If "Tidak Ada", ensure jaminan field is not submitted or is empty
-                if (adaJaminanYa && adaJaminanYa.value === 'tidak') {
-                    // Clear the field to prevent submission of stale data
-                    jaminanSelect.value = '';
-                    jaminanLainnyaInput.value = '';
-                }
-                console.log('📤 Form submitting...');
-                btnSubmit.disabled = true;
-                btnSubmit.innerHTML = '<svg class="w-5 h-5 inline mr-2 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Mengirim...';
-            });
         });
     </script>
     <style>
