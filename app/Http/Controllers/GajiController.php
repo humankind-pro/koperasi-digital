@@ -63,7 +63,7 @@ class GajiController extends Controller
 
         // 3. Konfigurasi Aturan (Bisa dipindah ke database setting nanti)
         $jamMasukBatas = '08:00:00';
-        $dendaPerTelat = 50000;  // Rp 50.000 per telat
+        $dendaPerTelat = 2000;  // Rp 50.000 per telat
         $dendaPerAlpa  = 100000; // Rp 100.000 per alpa
 
         // 4. Ambil Data Log Absensi dari IoT
