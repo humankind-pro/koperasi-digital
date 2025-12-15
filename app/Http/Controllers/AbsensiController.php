@@ -17,16 +17,16 @@ class AbsensiController extends Controller
     {
         $user = Auth::user();
 
-        // Jika user belum punya ID Fingerprint, tampilkan kosong
-        if (!$user->fingerprint_id) {
-            $riwayat = collect([]); // Koleksi kosong
-        } else {
-            // Ambil Log yang ID-nya sama dengan User DAN statusnya SUKSES
-            $riwayat = AlatAbsenLog::where('fingerprint_id', $user->fingerprint_id)
-                ->where('action', 'verification_success') // Filter hanya yang sukses
-                ->latest()
-                ->paginate(15);
-        }
+        // SOLUSI:
+        // Jangan pakai if-else untuk membuat collect([]).
+        // Langsung saja query ke database. 
+        // Jika fingerprint_id user itu NULL, kita ganti jadi 0 (atau angka yg tidak mungkin ada)
+        // agar query tetap jalan tapi menghasilkan Paginator kosong.
+        
+        $riwayat = AlatAbsenLog::where('fingerprint_id', $user->fingerprint_id ?? 0) // Jika null, cari ID 0
+            ->where('action', 'verification_success') // Filter hanya yang sukses
+            ->latest()
+            ->paginate(15);
 
         return view('karyawans.absensi.index', compact('riwayat'));
     }

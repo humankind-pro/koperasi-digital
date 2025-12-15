@@ -35,7 +35,6 @@
                                     <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Nasabah</th>
                                     <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Jumlah</th>
                                     <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Sisa Hutang</th>
-                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
                                     <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Aksi</th>
                                 </tr>
                             </thead>
@@ -51,7 +50,8 @@
                                     {{-- Nasabah --}}
                                     <td class="px-6 py-4">
                                         <div class="text-sm font-bold text-gray-900">{{ $p->anggota->nama }}</div>
-                                        <div class="text-xs text-gray-500">NIK: {{ $p->anggota->no_ktp }}</div>
+                                        {{-- NIK DITAMBAHKAN DI SINI --}}
+                                        <div class="text-xs text-gray-500 font-mono mt-0.5">NIK: {{ $p->anggota->nik }}</div>
                                     </td>
                                     
                                     {{-- Jumlah & Tenor --}}
@@ -59,7 +59,7 @@
                                         <div class="text-sm font-medium text-gray-900">
                                             Rp {{ number_format($p->jumlah_disetujui ?? $p->jumlah_pinjaman, 0, ',', '.') }}
                                         </div>
-                                        <div class="text-xs text-gray-500">{{ $p->lama_angsuran }} Bulan</div>
+                                        <div class="text-xs text-gray-500">{{ $p->lama_angsuran ?? $p->tenor_bulan }} Bulan</div>
                                     </td>
 
                                     {{-- Sisa Hutang --}}
@@ -74,21 +74,6 @@
                                             @endif
                                         @else
                                             <span class="text-gray-400">-</span>
-                                        @endif
-                                    </td>
-
-                                    {{-- Status --}}
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        @if($p->status == 'pending') 
-                                            <span class="text-yellow-700 bg-yellow-100 px-2 py-1 rounded-full text-xs font-semibold">Menunggu</span>
-                                        @elseif($p->status == 'disetujui') 
-                                            @if($p->sisa_hutang <= 0)
-                                                <span class="text-blue-700 bg-blue-100 px-2 py-1 rounded-full text-xs font-semibold">Lunas</span>
-                                            @else
-                                                <span class="text-green-700 bg-green-100 px-2 py-1 rounded-full text-xs font-semibold">Aktif</span>
-                                            @endif
-                                        @else 
-                                            <span class="text-red-700 bg-red-100 px-2 py-1 rounded-full text-xs font-semibold">Ditolak</span>
                                         @endif
                                     </td>
 
@@ -107,7 +92,8 @@
                                 </tr>
                                 @empty
                                 <tr>
-                                    <td colspan="6" class="text-center py-8 text-gray-500">
+                                    {{-- COLSPAN DIUBAH JADI 5 KARENA KOLOM STATUS HILANG --}}
+                                    <td colspan="5" class="text-center py-8 text-gray-500">
                                         Data tidak ditemukan.
                                     </td>
                                 </tr>

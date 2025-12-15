@@ -115,14 +115,17 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::get('/notifikasi/{id}/baca', [App\Http\Controllers\NotificationController::class, 'markAsRead'])
+        ->name('notifikasi.baca');
 });
 
 Route::middleware(['auth', 'role:karyawan'])->group(function () {
     Route::get('/karyawans/dashboard', [KaryawanController::class, 'index'])->name('karyawans.dashboard');
 
     
-    Route::get('/pinjaman/ajukan', [PinjamanController::class, 'create'])->name('pinjaman.create');
-    Route::post('/pinjaman', [PinjamanController::class, 'store'])->name('pinjaman.store');
+    Route::get('/pinjaman/cari', [PinjamanController::class, 'search'])->name('pinjaman.search');
+    Route::get('/pinjaman/ajukan/{anggotaId}', [PinjamanController::class, 'createExisting'])->name('pinjaman.create.existing');
+    Route::post('/pinjaman/store', [PinjamanController::class, 'storeExisting'])->name('pinjaman.store');
 
     
     Route::get('/pinjaman', [PinjamanController::class, 'index'])->name('pinjaman.index');
@@ -133,7 +136,7 @@ Route::middleware(['auth', 'role:karyawan'])->group(function () {
     
     // Proses Menghubungkan ID Fingerprint ke User
     Route::post('/karyawan/absensi/hubungkan', [AbsensiController::class, 'hubungkanKartu'])->name('absensi.hubungkan');
-Route::get('/absensi/riwayat', [AbsensiController::class, 'index'])->name('karyawan.absensi.index');
+    Route::get('/absensi/riwayat', [AbsensiController::class, 'index'])->name('karyawan.absensi.index');
 
     Route::get('/riwayat-pinjaman/cari', [AnggotaController::class, 'showSearchRiwayatForm'])->name('anggota.riwayat.search.form');
     // Route untuk menangani pencarian AJAX (mirip sebelumnya)
@@ -141,7 +144,8 @@ Route::get('/absensi/riwayat', [AbsensiController::class, 'index'])->name('karya
 
     //cek gaji
     Route::get('/gaji-saya', [GajiController::class, 'riwayatGajiSaya'])->name('karyawan.gaji.saya');
-
+    // Tambahkan di dalam group karyawan
+Route::get('/api/cari-nasabah', [App\Http\Controllers\AnggotaController::class, 'cariNasabahByNik'])->name('api.nasabah.cari');
 
 Route::get('/transaksi/pinjaman-aktif', [App\Http\Controllers\PembayaranController::class, 'indexPinjamanAktif'])->name('pinjaman.aktif');
     Route::get('/riwayat-pinjaman', [App\Http\Controllers\PinjamanController::class, 'riwayatPinjaman'])

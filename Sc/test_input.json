@@ -1,0 +1,17 @@
+{
+  "Umur": 18,
+  "Status_Pernikahan": "Lajang",
+  "Jumlah_Tanggungan": 3,
+  "Pendidikan": "SD",
+  "Jenis_Pekerjaan": "Buruh",
+  "Lama_Bekerja_Tahun": 0,
+  "Pendapatan_Bulanan": 1000000,
+  "Pengeluaran_Bulanan": 1500000,
+  "Skor_Kredit": 10,
+  "Jumlah_Pinjaman": 20000000,
+  "Lama_Tenor_Bulan": 48,
+  "Riwayat_Tunggakan": "Sering",
+  "Jaminan": "Tidak",
+  "Tujuan_Pinjaman": "Konsumtif",
+  "Status_Tempat_Tinggal": "Sewa"
+}

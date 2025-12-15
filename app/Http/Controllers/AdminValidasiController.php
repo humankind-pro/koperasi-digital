@@ -4,11 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\Anggota;
 use App\Models\Pinjaman;
-use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Symfony\Component\Process\Process;
-use Symfony\Component\Process\Exception\ProcessFailedException;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use App\Notifications\PinjamanDisetujui; // <--- Jangan lupa import ini di paling atas
+use App\Models\User;
 
 class AdminValidasiController extends Controller
 {
@@ -26,21 +27,67 @@ class AdminValidasiController extends Controller
     }
 
     /**
-     * Memproses persetujuan pengajuan anggota.
+     * [CORE UPDATE: SEAMLESS ONBOARDING]
+     * Menyetujui Anggota & Otomatis Membuat Record di Tabel Pinjaman
      */
     public function setujui(Anggota $anggota)
     {
-        $anggota->update([
-            'status' => 'disetujui',
-            'divalidasi_oleh_user_id' => Auth::id(),
-        ]);
+        DB::beginTransaction();
 
-        return redirect()->route('admin.validasi.nasabah.index')->with('success', 'Pengajuan anggota berhasil disetujui.');
+        try {
+            // 1. Update Status Anggota menjadi Disetujui/Aktif
+            $anggota->update([
+                'status' => 'disetujui',
+                'divalidasi_oleh_user_id' => Auth::id(),
+                'tanggal_bergabung' => now(),
+            ]);
+
+            // 2. OTOMATIS BUAT PINJAMAN PERTAMA
+            // Cek apakah nasabah ini memiliki rencana pinjaman awal?
+            if ($anggota->jumlah_pinjaman > 0) {
+                
+                // Siapkan data jaminan untuk dimasukkan ke kolom 'catatan'
+                // karena tabel pinjaman tidak punya kolom jaminan khusus.
+                $infoJaminan = "Jaminan: " . ($anggota->jaminan ?? '-');
+                if ($anggota->keterangan_jaminan) {
+                    $infoJaminan .= " (" . $anggota->keterangan_jaminan . ")";
+                }
+                $catatanAuto = "Pinjaman perdana (Auto-create saat validasi nasabah). " . $infoJaminan;
+
+                Log::info("🔄 Auto-Creating Loan for Anggota ID: " . $anggota->id);
+
+                Pinjaman::create([
+                    // Relasi
+                    'anggota_id'            => $anggota->id,
+                    'diajukan_oleh_user_id' => $anggota->dibuat_oleh_user_id, // Kredit sales yg input
+                    
+                    // Mapping Data dari Tabel Anggota ke Tabel Pinjaman
+                    'jumlah_pinjaman'       => $anggota->jumlah_pinjaman,
+                    'tenor_bulan'           => $anggota->tenor,           // Sesuai kolom DB Anda
+                    'tujuan'                => $anggota->tujuan_pinjaman, // Sesuai kolom DB Anda
+                    'skor_risiko'           => $anggota->skor_kredit,     // Ambil skor dari anggota
+                    
+                    // Status & Tanggal
+                    'status'                => 'pending', // Masuk antrian validasi pinjaman
+                    'tanggal_pengajuan'     => now(),
+                    
+                    // Informasi Tambahan
+                    'catatan'               => $catatanAuto,
+                ]);
+            }
+
+            DB::commit();
+
+            return redirect()->route('admin.validasi.nasabah.index')
+                ->with('success', 'Nasabah disetujui & Pinjaman awal otomatis dibuat (Cek menu Validasi Pinjaman).');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error("❌ Gagal Setujui Anggota: " . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal memproses: ' . $e->getMessage());
+        }
     }
 
-    /**
-     * Memproses penolakan pengajuan anggota.
-     */
     public function tolak(Anggota $anggota)
     {
         $anggota->update([
@@ -52,44 +99,12 @@ class AdminValidasiController extends Controller
     }
 
     /**
-     * Menampilkan riwayat semua pinjaman yang telah divalidasi.
-     * DENGAN FITUR PENCARIAN (FIXED)
-     */
-    public function riwayatPinjaman(Request $request)
-    {
-        // 1. Query Dasar
-        $query = Pinjaman::where('status', '!=', 'pending')
-                         // PERUBAHAN DI SINI: Tambahkan 'pembayaran'
-                         ->with(['anggota', 'diajukanOleh', 'divalidasiOleh', 'pembayaran']); 
-
-        // 2. LOGIKA PENCARIAN
-        if ($request->has('search') && $request->search != '') {
-            $keyword = $request->search;
-            $query->whereHas('anggota', function($q) use ($keyword) {
-                $q->where('no_ktp', 'like', "%{$keyword}%")
-                  ->orWhere('nama', 'like', "%{$keyword}%");
-            });
-        }
-
-        // 3. Ambil Data
-        $riwayatValidasi = $query->latest('updated_at')
-                                 ->paginate(15)
-                                 ->withQueryString();
-
-        // 4. Data untuk Modal Transfer
-        $semuaAnggotaDisetujui = Anggota::where('status', 'disetujui')
-                                        ->orderBy('nama')
-                                        ->get(['id', 'nama', 'no_ktp']);
-
-        return view('admins.riwayat.pinjaman', compact('riwayatValidasi', 'semuaAnggotaDisetujui'));
-    }
-    /**
-     * Menampilkan daftar pengajuan pinjaman yang 'pending'.
+     * Halaman Validasi Pinjaman
+     * Menampilkan pinjaman (termasuk yang baru dibuat otomatis) yang statusnya 'pending'
      */
     public function validasiPinjaman()
     {
-        // Menggunakan TRIM untuk mengabaikan spasi tersembunyi
-        $pengajuanPinjaman = Pinjaman::whereRaw('TRIM(status) = ?', ['pending'])
+        $pengajuanPinjaman = Pinjaman::where('status', 'pending')
                                     ->with(['anggota', 'diajukanOleh'])
                                     ->latest()
                                     ->paginate(10);
@@ -98,32 +113,39 @@ class AdminValidasiController extends Controller
     }
 
     /**
-     * Memproses persetujuan pinjaman.
+     * Proses Persetujuan Pinjaman (Pencairan)
      */
     public function setujuiPinjaman(Request $request, Pinjaman $pinjaman)
     {
         $request->validate(['jumlah_disetujui' => 'required|numeric|min:0']);
 
-        $jumlahAwalPinjaman = $pinjaman->jumlah_pinjaman;
+        // ... (Logika update status pinjaman Anda yang sudah ada tetap sama) ...
         $jumlahDisetujui = $request->jumlah_disetujui;
         $tanggalValidasi = now();
+        $tenggatBerikutnya = $tanggalValidasi->copy()->addMonth();
 
         $pinjaman->update([
-            'status' => 'disetujui',
+            'status'                  => 'disetujui',
             'divalidasi_oleh_user_id' => Auth::id(),
-            'jumlah_disetujui' => $jumlahDisetujui,
-            'sisa_hutang' => $jumlahAwalPinjaman, // Hutang awal = jumlah pengajuan (atau disetujui, tergantung kebijakan)
-            'tanggal_validasi' => $tanggalValidasi,
-            // SET TENGGAT PERTAMA: 30 hari dari sekarang
-            'tenggat_berikutnya' => $tanggalValidasi->copy()->addMonths(1), 
+            'jumlah_disetujui'        => $jumlahDisetujui,
+            'sisa_hutang'             => $jumlahDisetujui,
+            'tanggal_validasi'        => $tanggalValidasi,
+            'tenggat_berikutnya'      => $tenggatBerikutnya,
         ]);
 
-        return redirect()->route('admin.validasi.pinjaman.index')->with('success', 'Pengajuan pinjaman berhasil disetujui.');
+        // === TAMBAHAN: KIRIM NOTIFIKASI KE KARYAWAN ===
+        // Cari karyawan yang mengajukan pinjaman ini
+        $karyawan = User::find($pinjaman->diajukan_oleh_user_id);
+        
+        if ($karyawan) {
+            $karyawan->notify(new PinjamanDisetujui($pinjaman));
+        }
+        // ==============================================
+
+        return redirect()->route('admin.validasi.pinjaman.index')
+            ->with('success', 'Pinjaman berhasil disetujui dan notifikasi dikirim ke karyawan.');
     }
 
-    /**
-     * Memproses penolakan pinjaman.
-     */
     public function tolakPinjaman(Pinjaman $pinjaman)
     {
         $pinjaman->update([
@@ -132,18 +154,47 @@ class AdminValidasiController extends Controller
             'tanggal_validasi' => now(),
         ]);
 
-        return redirect()->route('admin.validasi.pinjaman.index')->with('success', 'Pengajuan pinjaman telah ditolak.');
+        return redirect()->route('admin.validasi.pinjaman.index')
+            ->with('success', 'Pengajuan pinjaman telah ditolak.');
     }
 
-    // Ini API untuk pencarian via AJAX (Jika Anda menggunakannya di modal)
+    /**
+     * Riwayat Pinjaman (Search by NIK updated)
+     */
+    public function riwayatPinjaman(Request $request)
+    {
+        $query = Pinjaman::where('status', '!=', 'pending')
+                         ->with(['anggota', 'diajukanOleh', 'divalidasiOleh']); 
+
+        // SEARCH LOGIC
+        if ($request->has('search') && $request->search != '') {
+            $keyword = $request->search;
+            $query->whereHas('anggota', function($q) use ($keyword) {
+                $q->where('nik', 'like', "%{$keyword}%") 
+                  ->orWhere('nama', 'like', "%{$keyword}%");
+            });
+        }
+
+        $riwayatValidasi = $query->latest('updated_at')
+                                 ->paginate(15)
+                                 ->withQueryString();
+
+        // Data untuk dropdown filter (opsional)
+        $semuaAnggotaDisetujui = Anggota::where('status', 'disetujui')
+                                        ->orderBy('nama')
+                                        ->get(['id', 'nama', 'nik']);
+
+        return view('admins.riwayat.pinjaman', compact('riwayatValidasi', 'semuaAnggotaDisetujui'));
+    }
+
+    // API AJAX: Search NIK
     public function searchNikRiwayatAdmin(Request $request)
     {
-        // 1. Validasi Input
         $request->validate(['nik' => 'required|string']);
         $nik = $request->input('nik');
 
-        // 2. Cari Anggota berdasarkan NIK
-        $anggota = Anggota::where('no_ktp', $nik)->first();
+        // Cari Anggota by NIK
+        $anggota = Anggota::where('nik', $nik)->first();
 
         if (!$anggota) {
             return response()->json([
@@ -152,20 +203,18 @@ class AdminValidasiController extends Controller
             ], 404);
         }
 
-        // 3. Ambil Riwayat Pinjaman milik Anggota tersebut
+        // Cari History Pinjaman
         $riwayatPinjaman = Pinjaman::where('anggota_id', $anggota->id)
             ->where('status', '!=', 'pending')
             ->with([
                 'diajukanOleh:id,name',
                 'divalidasiOleh:id,name',
-                'pembayaran' => function($query) {
-                    $query->orderBy('tanggal_bayar', 'desc'); // Urutkan pembayaran terbaru
-                }
+                // Hapus relasi 'pembayaran' jika belum ada model/tabelnya
+                // 'pembayaran' => function($query) { $query->orderBy('tanggal_bayar', 'desc'); }
             ])
             ->latest('tanggal_validasi')
             ->get();
 
-        // 4. Return JSON (Agar bisa dibaca JavaScript)
         return response()->json([
             'success' => true,
             'anggota' => $anggota,
@@ -180,87 +229,24 @@ class AdminValidasiController extends Controller
             'alasan_transfer' => 'nullable|string',
         ]);
 
-        // Pastikan pinjaman yang ditransfer adalah pinjaman aktif
         if ($pinjaman->status !== 'disetujui') {
-            return back()->with('error', 'Hanya pinjaman yang sedang berjalan (disetujui) yang bisa dipindahkan.');
+            return back()->with('error', 'Hanya pinjaman aktif yang bisa dipindahkan.');
         }
 
-        // Pastikan tidak mentransfer ke anggota yang sama
         if ($pinjaman->anggota_id == $request->new_anggota_id) {
-             return back()->with('error', 'Tidak bisa mentransfer pinjaman ke nasabah yang sama.');
+             return back()->with('error', 'Tidak bisa mentransfer ke nasabah yang sama.');
         }
 
-        // Simpan ID anggota asli jika belum ada (opsional)
         $originalAnggotaId = $pinjaman->original_anggota_id ?? $pinjaman->anggota_id;
 
-        // Update pinjaman
         $pinjaman->update([
             'anggota_id' => $request->new_anggota_id,
-            'original_anggota_id' => $originalAnggotaId, // Simpan ID asli
+            'original_anggota_id' => $originalAnggotaId,
             'ditransfer_oleh_user_id' => Auth::id(),
             'tanggal_transfer' => now(),
             'alasan_transfer' => $request->alasan_transfer,
         ]);
 
-        return redirect()->route('admin.riwayat.pinjaman')->with('success', 'Pinjaman berhasil dipindahkan ke nasabah baru.');
-    }
-
-    public function cekAi($id)
-    {
-        try {
-            $pinjaman = \App\Models\Pinjaman::with('anggota')->findOrFail($id);
-            $anggota = $pinjaman->anggota;
-
-            // Siapkan Data
-            $p1 = (float) $anggota->pendapatan_bulanan;
-            $p2 = (float) $pinjaman->jumlah_pinjaman;
-            $p3 = (float) $pinjaman->lama_angsuran;
-            $p4 = (float) ($anggota->tanggungan ?? 0);
-            
-            // Riwayat
-            $cekMacet = \App\Models\Pinjaman::where('anggota_id', $anggota->id)
-                        ->where('id', '!=', $id)
-                        ->where('status', 'macet')->exists();
-            $p5 = $cekMacet ? 'Macet' : 'Lancar';
-
-            // Dummy data (karena model ML di atas hanya pakai 6 fitur inti biar stabil)
-            $p6 = 'Lainnya'; 
-            $p7 = 30; 
-            $p8 = 0; 
-            $p9 = 1; 
-            
-            // Jaminan
-            $p10 = 'Tidak Ada';
-            if ($anggota->memiliki_jaminan) {
-                $p10 = $anggota->jenis_jaminan ?? 'Ada';
-            }
-
-            $pythonExec = "C:\\Users\\ACER\\AppData\\Local\\Programs\\Python\\Python312\\python.exe";
-            $scriptPath = "predict.py"; 
-            $workingDir = storage_path('app/python');
-
-            $process = new \Symfony\Component\Process\Process([
-                $pythonExec, $scriptPath,
-                $p1, $p2, $p3, $p4, $p5, $p6, $p7, $p8, $p9, $p10
-            ]);
-            
-            $process->setWorkingDirectory($workingDir);
-            $process->run();
-
-            if (!$process->isSuccessful()) {
-                throw new \Symfony\Component\Process\Exception\ProcessFailedException($process);
-            }
-
-            $output = trim($process->getOutput());
-            
-            if (preg_match('/\{.*\}/s', $output, $matches)) {
-                return response($matches[0])->header('Content-Type', 'application/json');
-            }
-
-            return response()->json(['status' => 'error', 'pesan' => 'Output: ' . $output]);
-
-        } catch (\Exception $e) {
-            return response()->json(['status' => 'error', 'pesan' => $e->getMessage()]);
-        }
+        return redirect()->route('admin.riwayat.pinjaman')->with('success', 'Pinjaman berhasil dipindahkan.');
     }
 }

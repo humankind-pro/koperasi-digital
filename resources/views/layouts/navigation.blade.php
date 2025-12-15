@@ -18,9 +18,6 @@
             <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')" class="block px-4 py-2 rounded-md hover:bg-cyan-700 text-white">
                 Dashboard
             </x-nav-link>
-            <x-nav-link href="#" class="block px-4 py-2 rounded-md hover:bg-cyan-700 text-white">
-                Rekapan
-            </x-nav-link>
             <x-nav-link :href="route('karyawans.index')" :active="request()->routeIs('karyawans.*')" class="block px-4 py-2 rounded-md hover:bg-cyan-700 text-white">
                 Data Karyawan
             </x-nav-link>
@@ -39,10 +36,11 @@
 
             <p class="px-4 text-xs font-semibold text-cyan-200 uppercase tracking-wider mt-6 mb-2">Nasabah</p>
             
-            <x-nav-link :href="route('anggota.index')" :active="request()->routeIs('anggota.*')" class="block px-4 py-2 rounded-md hover:bg-cyan-700 text-white">
-                Input Nasabah
-            </x-nav-link>
-            <x-nav-link :href="route('pinjaman.create')" :active="request()->routeIs('pinjaman.create')" class="block px-4 py-2 rounded-md hover:bg-cyan-700 text-white">
+            <a href="{{ route('anggota.create') }}" class="inline-flex items-center px-3 py-2 text-sm font-medium leading-5 text-white hover:bg-cyan-600 rounded-lg ...">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 12h.01M16 12h.01M8 12h.01"></path></svg>
+                            Input Nasabah
+                        </a>
+            <x-nav-link :href="route('pinjaman.search')" :active="request()->routeIs('pinjaman.create')" class="block px-4 py-2 rounded-md hover:bg-cyan-700 text-white">
                 Ajukan Pinjaman
             </x-nav-link>
             <x-nav-link :href="route('pinjaman.aktif')" :active="request()->routeIs('pinjaman.aktif')" class="block px-4 py-2 rounded-md hover:bg-cyan-700 text-white">

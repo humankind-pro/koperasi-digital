@@ -2,88 +2,112 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\Pinjaman;
 use App\Models\Anggota;
+use App\Models\Pinjaman;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class PinjamanController extends Controller
 {
     /**
-     * Menampilkan formulir "Ajukan Pinjaman".
+     * Halaman 1: Cari Nasabah untuk diajukan pinjaman baru
      */
-    // 1. METHOD INDEX (Riwayat Pengajuan Saya)
-public function index()
-{
-    // Sudah benar (diajukan_oleh_user_id), tapi mari kita pastikan
-    $riwayatPinjaman = Pinjaman::where('diajukan_oleh_user_id', Auth::id()) // <-- Pastikan ini Auth::id()
-        ->with('anggota')
-        ->latest('tanggal_pengajuan')
-        ->paginate(10);
-        
-    return view('karyawans.pinjaman.index', compact('riwayatPinjaman'));
-}
-
-// 2. METHOD CREATE (Form Pengajuan - Dropdown/Pilihan)
-public function create()
-{
-    // Hanya ambil anggota milik karyawan ini yang disetujui
-    $anggotas = Anggota::where('status', 'disetujui')
-                        ->where('dibuat_oleh_user_id', Auth::id()) // <-- KUNCI PEMBATASAN
-                        ->orderBy('nama')
-                        ->get();
-                        
-    return view('karyawans.pinjaman.create', compact('anggotas'));
-}
+    public function search()
+    {
+        return view('karyawans.pinjaman.search');
+    }
 
     /**
-     * Menyimpan data pengajuan pinjaman baru.
+     * Halaman 2: Form Input Pinjaman (Setelah nasabah ditemukan)
      */
-    public function store(Request $request)
+    public function createExisting($anggotaId)
+    {
+        $anggota = Anggota::findOrFail($anggotaId);
+
+        // Validasi: Pastikan nasabah statusnya aktif/disetujui
+        if ($anggota->status !== 'disetujui' && $anggota->status !== 'aktif') {
+            return redirect()->route('pinjaman.search')
+                ->with('error', 'Nasabah ini belum disetujui atau statusnya tidak aktif.');
+        }
+
+        // Opsional: Cek apakah masih ada pinjaman pending?
+        $existingPending = Pinjaman::where('anggota_id', $anggota->id)
+            ->where('status', 'pending')
+            ->exists();
+
+        if ($existingPending) {
+            return redirect()->route('pinjaman.search')
+                ->with('error', 'Nasabah ini masih memiliki pengajuan pinjaman yang belum divalidasi.');
+        }
+
+        return view('karyawans.pinjaman.create_existing', compact('anggota'));
+    }
+
+    /**
+     * Proses Simpan Pengajuan Pinjaman Baru
+     */
+    public function storeExisting(Request $request)
     {
         $request->validate([
-            'anggota_id' => 'required|exists:anggota,id',
-            'jumlah_pinjaman' => 'required|numeric|min:100000|max:20000000',
-            'tenor_bulan' => 'required|integer|min:1',
-            'tujuan' => 'required|string',
+            'anggota_id'       => 'required|exists:anggota,id',
+            'jumlah_pinjaman'  => 'required|numeric|min:100000',
+            'tenor_bulan'      => 'required|integer|in:1,2,3,4,5,6,7,8,9,10,11,12,18,24,36,48,60',
+            'tujuan'           => 'required|string',
+            'jenis_jaminan'    => 'required|string', // Untuk digabung ke catatan
+            'keterangan_jaminan'=> 'nullable|string',
         ]);
+
+        $anggota = Anggota::findOrFail($request->anggota_id);
+
+        // Gabungkan info jaminan ke kolom catatan (sesuai struktur DB Anda)
+        $catatan = "Pengajuan Ulang (Repeat Order). Jaminan: " . $request->jenis_jaminan;
+        if ($request->keterangan_jaminan) {
+            $catatan .= " (" . $request->keterangan_jaminan . ")";
+        }
 
         Pinjaman::create([
-            'anggota_id' => $request->anggota_id,
+            'anggota_id'            => $anggota->id,
             'diajukan_oleh_user_id' => Auth::id(),
-            'jumlah_pinjaman' => $request->jumlah_pinjaman,
-            'tenor_bulan' => $request->tenor_bulan,
-            'tujuan' => $request->tujuan,
-            'status' => 'pending', // <-- Status di-set sebagai 'pending'
-            'tanggal_pengajuan' => now(),
+            
+            'jumlah_pinjaman'       => $request->jumlah_pinjaman,
+            'tenor_bulan'           => $request->tenor_bulan,
+            'tujuan'                => $request->tujuan,
+            'skor_risiko'           => $anggota->skor_kredit, // Ambil skor lama atau hitung ulang jika ada fitur update
+            
+            'status'                => 'pending', // Masuk antrian validasi admin
+            'tanggal_pengajuan'     => now(),
+            'catatan'               => $catatan,
         ]);
 
-        // Redirect ke dashboard karyawan dengan pesan sukses
-        return redirect()->route('dashboard')->with('success', 'Pengajuan pinjaman berhasil dikirim untuk divalidasi.');
+        return redirect()->route('pinjaman.search')
+            ->with('success', 'Pengajuan pinjaman baru untuk ' . $anggota->nama . ' berhasil dikirim!');
     }
-    
-public function riwayatPinjaman(Request $request)
+    /**
+     * Menampilkan riwayat pinjaman yang diajukan oleh karyawan ini.
+     * Dilengkapi fitur cari Nama/NIK.
+     */
+    public function riwayatPinjaman(Request $request)
     {
-        // 1. Query Dasar: Hanya pinjaman yang diajukan oleh Karyawan ini
-        $query = Pinjaman::where('diajukan_oleh_user_id', \Illuminate\Support\Facades\Auth::id())
-                         // PENTING: Load relasi 'pembayaran' agar bisa dilihat di modal
-                         ->with(['anggota', 'pembayaran']);
+        // 1. Mulai Query: Ambil pinjaman yang diajukan oleh user yang sedang login
+        $query = Pinjaman::with(['anggota', 'divalidasiOleh'])
+                         ->where('diajukan_oleh_user_id', Auth::id());
 
-        // 2. Logika Pencarian (Sama seperti Admin)
+        // 2. Logika Pencarian (Search)
         if ($request->has('search') && $request->search != '') {
             $keyword = $request->search;
+            
+            // Cari di tabel relasi 'anggota'
             $query->whereHas('anggota', function($q) use ($keyword) {
-                $q->where('no_ktp', 'like', "%{$keyword}%")
-                  ->orWhere('nama', 'like', "%{$keyword}%");
+                $q->where('nama', 'like', "%{$keyword}%")
+                  ->orWhere('nik', 'like', "%{$keyword}%");
             });
         }
 
-        // 3. Ambil Data (Pagination)
-        $riwayat = $query->latest('updated_at')
-                         ->paginate(10)
-                         ->withQueryString();
+        // 3. Eksekusi Query
+        $riwayat = $query->latest()->paginate(15)->withQueryString();
 
+        // 4. Tampilkan View
         return view('karyawans.pinjaman.riwayat', compact('riwayat'));
     }
-    // ... method lain seperti index() ...
 }
