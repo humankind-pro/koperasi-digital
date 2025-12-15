@@ -455,7 +455,7 @@ class AnggotaController extends Controller
         $nik = $request->input('nik');
 
         // Cari Anggota
-        $anggota = Anggota::where('no_ktp', $nik)
+        $anggota = Anggota::where('nik', $nik)
                           ->where('dibuat_oleh_user_id', Auth::id()) // Hanya nasabah buatan karyawan ini
                           ->first(); // Ambil SEMUA field (jangan cuma id & nama)
 
@@ -484,7 +484,7 @@ class AnggotaController extends Controller
         $request->validate(['nik' => 'required|string']);
         $nik = $request->input('nik');
 
-        $anggota = Anggota::where('no_ktp', $nik)
+        $anggota = Anggota::where('nik', $nik)
                           ->where('dibuat_oleh_user_id', Auth::id())
                           ->first();
 
@@ -530,7 +530,7 @@ class AnggotaController extends Controller
         $validatedData = $request->validate([
             'nama'               => 'required|string|max:150',
             'nik'                => 'required|digits:16|unique:anggota,nik,' . $anggota->id,
-            'no_ktp'             => 'nullable|string|max:20|unique:anggota,no_ktp,' . $anggota->id,
+            'nik'             => 'nullable|string|max:20|unique:anggota,nik,' . $anggota->id,
             'alamat'             => 'required|string',
             'nomor_telepon'      => 'required|digits_between:10,15',
             'pekerjaan'          => 'nullable|string|max:100',

@@ -93,14 +93,19 @@
 
             <p class="px-4 text-xs font-semibold text-cyan-200 uppercase tracking-wider mt-6 mb-2">Keuangan</p>
 
-            <x-nav-link :href="route('sekertaris.pinjaman.rekap')" :active="request()->routeIs('sekertaris.pinjaman.*')" class="block px-4 py-2 rounded-md hover:bg-cyan-700 text-white">
-                Rekap Pinjaman
-            </x-nav-link>
+            
             <x-nav-link :href="route('sekertaris.gaji.index')" :active="request()->routeIs('sekertaris.gaji.*')" class="block px-4 py-2 rounded-md hover:bg-cyan-700 text-white">
                 Kelola Gaji
             </x-nav-link>
+            <p class="px-4 text-xs font-semibold text-cyan-200 uppercase tracking-wider mt-6 mb-2">Kelolah Data</p>
             <x-nav-link :href="route('sekertaris.karyawan.registrasi.create')" :active="request()->routeIs('sekertaris.gaji.*')" class="block px-4 py-2 rounded-md hover:bg-cyan-700 text-white">
                 Daftar Absensi Karyawan
+            </x-nav-link>
+            <x-nav-link :href="route('sekertaris.pinjaman.rekap')" :active="request()->routeIs('sekertaris.pinjaman.*')" class="block px-4 py-2 rounded-md hover:bg-cyan-700 text-white">
+                Rekap Pinjaman
+            </x-nav-link>
+            <x-nav-link :href="route('sekertaris.absensi.index')" :active="request()->routeIs('sekertaris.gaji.*')" class="block px-4 py-2 rounded-md hover:bg-cyan-700 text-white">
+                Rekap Absensi 
             </x-nav-link>
         @endif
 

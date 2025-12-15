@@ -15,6 +15,7 @@ use App\Http\Controllers\PembayaranController;
 use App\Http\Controllers\AbsensiController;
 use App\Http\Controllers\GajiController;
 use App\Http\Controllers\SekertarisController;
+use App\Http\Controllers\SekertarisAbsensiController;
 
 
 /*
@@ -171,6 +172,7 @@ Route::middleware(['auth', 'role:sekertaris'])->prefix('sekertaris')->name('seke
     Route::get('/pengaturan-absensi', [SekertarisController::class, 'editPengaturan'])->name('pengaturan.edit');
     Route::put('/pengaturan-absensi', [SekertarisController::class, 'updatePengaturan'])->name('pengaturan.update');
     Route::get('/gaji/hitung-otomatis', [GajiController::class, 'hitungPotongan'])->name('gaji.hitung');
+    Route::get('/absensi', [SekertarisAbsensiController::class, 'index'])->name('absensi.index');
     // Nanti tambah route absensi di sini
 Route::get('/absensi/monitoring', [AbsensiController::class, 'monitor'])
          ->name('karyawan.registrasi.create'); 
