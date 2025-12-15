@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Process; // Pastikan ini di-import
+use Illuminate\Support\Facades\Process; 
 use Exception;
 
 class MLDataScrapper
@@ -15,16 +15,8 @@ class MLDataScrapper
 
     public function __construct()
     {
-        // KONFIGURASI PATH (Sesuai .env Windows Anda)
-        
-        // 1. Path Python Exe
         $this->pythonPath = env('PYTHON_PATH', 'python'); 
-        
-        // 2. Path Script Python
         $this->pythonScriptPath = env('PYTHON_SCRIPT_PATH', base_path('Sc/predict_script.py'));
-        
-        // 3. Path Model (.pkl)
-        // Default value disesuaikan agar menyertakan ekstensi .pkl
         $this->modelPath = env('ML_MODEL_PATH', base_path('Sc/credit_model_ultra.pkl'));
         
         $this->timeout = env('ML_SCRIPT_TIMEOUT', 120);
@@ -34,10 +26,6 @@ class MLDataScrapper
     {
         try {
             Log::info('🤖 MLDataScrapper: Received raw input data for prediction', $inputData);
-            
-            // Memetakan data input dari form/database ke format Python ML Model.
-            // DATABASE TETAP SIMPAN DATA ASLI USER!
-            // Function ini hanya untuk "translate" ke format Python model.
             $mappedData = $this->mapInputToPythonModelFormat($inputData);
 
             Log::info('🤖 MLDataScrapper: Mapped data for Python ML model', $mappedData);
@@ -72,51 +60,30 @@ class MLDataScrapper
             ];
         }
     }
-
-    /**
-     * Memetakan data input dari form/database ke format Python ML Model.
-     * DATABASE TETAP SIMPAN DATA ASLI USER!
-     * Function ini hanya untuk "translate" ke format Python model.
-     */
     private function mapInputToPythonModelFormat(array $inputData): array
     {
-        // ========================================
-        // MAPPING FUNCTIONS - EXACT MATCH MODEL
-        // ========================================
-
-        /**
-         * Status Pernikahan Mapping
-         * Output ke Python: Lajang, Menikah, Cerai (EXACT!)
-         */
         $mapStatusPernikahan = function ($status) {
             if (empty($status)) {
-                return 'Lajang'; // Default
+                return 'Lajang'; 
             }
 
             $status = strtoupper(trim($status));
 
-            // Map ke Lajang
             if (in_array($status, ['LAJANG', 'BELUM KAWIN', 'BELUM MENIKAH', 'SINGLE'])) {
                 return 'Lajang';
             }
 
-            // Map ke Menikah
             if (in_array($status, ['MENIKAH', 'KAWIN', 'MARRIED'])) {
                 return 'Menikah';
             }
 
-            // Map ke Cerai
             if (in_array($status, ['CERAI', 'CERAI HIDUP', 'CERAI MATI', 'DUDA', 'JANDA'])) {
                 return 'Cerai';
             }
 
-            return 'Lajang'; // Default
+            return 'Lajang'; 
         };
 
-        /**
-         * Pekerjaan Mapping
-         * Output ke Python: PNS, Karyawan, Wiraswasta, Buruh, Petani, Lainnya (EXACT!)
-         */
         $mapPekerjaan = function ($pekerjaan) {
             if (empty($pekerjaan)) {
                 return 'Lainnya';
@@ -162,13 +129,9 @@ class MLDataScrapper
             return 'Lainnya';
         };
 
-        /**
-         * Pendidikan Mapping
-         * Output ke Python: SD, SMP, SMA, Diploma, S1, S2, S3 (EXACT!)
-         */
         $mapPendidikan = function ($pendidikan) {
             if (empty($pendidikan)) {
-                return 'SMA'; // Default
+                return 'SMA'; 
             }
 
             $pendidikan = strtoupper(trim($pendidikan));
@@ -190,10 +153,6 @@ class MLDataScrapper
             return $mapping[$pendidikan] ?? 'SMA';
         };
 
-        /**
-         * Tujuan Pinjaman Mapping
-         * Output ke Python: Modal Usaha, Darurat, Konsumtif, Pendidikan, Renovasi, Lainnya (EXACT!)
-         */
         $mapTujuanPinjaman = function ($tujuan) {
             if (empty($tujuan)) {
                 return 'Lainnya';
@@ -217,10 +176,6 @@ class MLDataScrapper
             return $mapping[$tujuan] ?? 'Lainnya';
         };
 
-        /**
-         * Riwayat Tunggakan Mapping
-         * Output ke Python: Tidak, Pernah, Sering (EXACT!)
-         */
         $mapRiwayatTunggakan = function ($tunggakan) {
             if (empty($tunggakan)) {
                 return 'Tidak';
@@ -241,21 +196,13 @@ class MLDataScrapper
             }
         };
 
-        /**
-         * ✅ FIX: Jaminan Mapping
-         * Output ke Python: Ada, Tidak (BUKAN "Tidak Ada"!)
-         */
         $mapJaminan = function ($jaminan) {
             if (empty($jaminan) || trim($jaminan) === '' || strtolower(trim($jaminan)) === 'tidak') {
-                return 'Tidak'; // ✅ FIXED: return "Tidak" bukan "Tidak Ada"
+                return 'Tidak'; 
             }
             return 'Ada';
         };
 
-        /**
-         * Status Tempat Tinggal Mapping
-         * Output ke Python: Milik Sendiri, Sewa, Kontrak, Milik Orang Tua (EXACT!)
-         */
         $mapStatusTempatTinggal = function ($status) {
             if (empty($status)) {
                 return 'Milik Sendiri';
@@ -276,9 +223,6 @@ class MLDataScrapper
             return 'Milik Sendiri';
         };
 
-        // ========================================
-        // RETURN MAPPED DATA - NAMA KOLOM EXACT!
-        // ========================================
         return [
             'Umur' => (int) ($inputData['umur'] ?? $inputData['anggota']->umur ?? 25),
             
@@ -336,18 +280,9 @@ class MLDataScrapper
         ];
     }
 
-    /**
-     * ✅ FIXED: Menjalankan skrip Python dengan parameter lengkap dan robust (Laravel 12)
-     *          Menetapkan variabel lingkungan USERPROFILE menggunakan array.
-     *          MENGINGATKAN: Untuk stabilitas jangka panjang, pertimbangkan beralih ke format JSON/UBJ.
-     *          Dokumentasi XGBoost: "If you'd like to store or archive your model for long-term storage,
-     *          use save_model (Python) and xgb.save (R). If a model is persisted with pickle.dump
-     *          (Python) or saveRDS (R), then the model may not be accessible in later versions of XGBoost."
-     */
     private function runPythonScript(array $mappedData): array
     {
         try {
-            // 1. Validasi File
             if (!file_exists($this->pythonScriptPath)) {
                 throw new Exception("Python script not found: {$this->pythonScriptPath}");
             }
@@ -355,23 +290,17 @@ class MLDataScrapper
                  throw new Exception("ML model file not found: {$this->modelPath}");
             }
 
-            // 2. Simpan Input JSON Sementara
-            // ✅ FIX: Simpan data dengan encoding yang benar
             $inputJson = json_encode($mappedData, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
-            $tempFile = storage_path('app/temp_ml_input_' . uniqid() . '.json'); // Gunakan uniqid untuk mencegah tabrakan
+            $tempFile = storage_path('app/temp_ml_input_' . uniqid() . '.json'); 
             file_put_contents($tempFile, $inputJson, LOCK_EX);
 
-            // 3. Bangun Command (Wajib Quote untuk Path Windows dengan Spasi)
-            // Format: "C:\Path\python.exe" "C:\Path\script.py" "C:\Path\model.pkl" "C:\Path\temp.json"
-            // ✅ FIX: Gunakan Python path dari .env
             $pythonCommand = $this->pythonPath;
             
-            // ✅ FIX: Build command dengan quotes untuk handle spaces
             $command = sprintf(
                 '"%s" "%s" "%s" "%s"',
                 $pythonCommand,
                 $this->pythonScriptPath,
-                $this->modelPath, // Ini akan digunakan oleh predict_script.py
+                $this->modelPath, 
                 $tempFile
             );
 
@@ -379,38 +308,27 @@ class MLDataScrapper
                 'command' => $command
             ]);
 
-            // 4. Siapkan Environment Variables (PENTING UNTUK WINDOWS)
-            // ✅ FIX: Gunakan array untuk env() sesuai Laravel 12
             $environmentVars = [];
             
-            // Pass USERPROFILE agar Python bisa akses config user
             $userProfileValue = $_SERVER['USERPROFILE'] ?? getenv('USERPROFILE');
             if ($userProfileValue !== false && $userProfileValue !== null) {
                 $environmentVars['USERPROFILE'] = $userProfileValue;
             }
 
-            // Pass SYSTEMROOT (C:\Windows) - Diperlukan beberapa library Python
             $systemRoot = $_SERVER['SystemRoot'] ?? getenv('SystemRoot');
             if ($systemRoot) $environmentVars['SystemRoot'] = $systemRoot;
             
-            // Pass PATH agar Python bisa load DLL
             $pathEnv = $_SERVER['PATH'] ?? getenv('PATH');
             if ($pathEnv) $environmentVars['PATH'] = $pathEnv;
 
-            // 5. Eksekusi Process
-            // Jalankan skrip Python dengan timeout dan variabel lingkungan dalam bentuk array
             $process = Process::timeout($this->timeout)
-                ->env($environmentVars) // <-- Gunakan array
+                ->env($environmentVars) 
                 ->run($command);
 
-            // 6. Hapus File Temporary
-            // Hapus file sementara
             if (file_exists($tempFile)) {
                 unlink($tempFile);
             }
 
-            // 7. Cek Hasil
-            // Check if process succeeded
             if (!$process->failed()) {
                 $output = trim($process->output());
                 
@@ -418,7 +336,6 @@ class MLDataScrapper
                 
                 $result = json_decode($output, true);
 
-                // Fallback jika output kotor
                 if (json_last_error() !== JSON_ERROR_NONE) {
                     $lines = explode("\n", $output);
                     $lastLine = end($lines);
@@ -457,7 +374,6 @@ class MLDataScrapper
             }
 
         } catch (\Throwable $e) {
-            // Clean up temp file on error
             if (isset($tempFile) && file_exists($tempFile)) {
                 unlink($tempFile);
             }

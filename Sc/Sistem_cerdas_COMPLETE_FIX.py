@@ -33,6 +33,7 @@ class CreditScoringModelUltra:
         self.le_target = None
         self.scaler = None
         self.feature_names = []
+        self.scaled_features = []  # Track which features are scaled
         self.inv_target_mapping = {}
         
     def parse_money_input(self, value):
@@ -316,6 +317,7 @@ class CreditScoringModelUltra:
         
         self.scaler = StandardScaler()
         df[num_cols] = self.scaler.fit_transform(df[num_cols])
+        self.scaled_features = num_cols  # Save which features were scaled
         print(f"    ✓ Scaled {len(num_cols)} features")
         
         self.feature_names = [col for col in df.columns if col != 'Kelayakan']
@@ -557,6 +559,7 @@ class CreditScoringModelUltra:
                 'le_target': self.le_target,
                 'scaler': self.scaler,
                 'feature_names': self.feature_names,
+                'scaled_features': self.scaled_features,  # Save scaled features list
                 'inv_target_mapping': self.inv_target_mapping
             }, f)
         print(f"✓ Model saved: {path}\n")
@@ -571,6 +574,7 @@ class CreditScoringModelUltra:
         self.le_target = data['le_target']
         self.scaler = data['scaler']
         self.feature_names = data['feature_names']
+        self.scaled_features = data.get('scaled_features', self.feature_names)  # Backward compatibility
         self.inv_target_mapping = data['inv_target_mapping']
         
         print(f"✓ Model loaded: {path}\n")
@@ -625,10 +629,12 @@ class CreditScoringModelUltra:
         return data
 
     def predict_kelayakan(self, input_data):
-        """Predict dengan ALL engineered features - FIXED VERSION"""
+        """Predict dengan feature recreation yang PERSIS SAMA dengan training"""
+        
+        # STEP 1: Create DataFrame with BASE features
         df = pd.DataFrame([input_data])
         
-        # Safe value extraction
+        # STEP 2: Extract numeric values for feature engineering
         pendapatan = max(input_data.get('Pendapatan_Bulanan', 5000000), 1)
         pengeluaran = max(input_data.get('Pengeluaran_Bulanan', 3000000), 1)
         pinjaman = max(input_data.get('Jumlah_Pinjaman', 10000000), 1)
@@ -638,7 +644,7 @@ class CreditScoringModelUltra:
         skor = max(min(input_data.get('Skor_Kredit', 50), 100), 0)
         tanggungan = max(input_data.get('Jumlah_Tanggungan', 0), 0)
         
-        # Recreate ALL features
+        # STEP 3: Create engineered features (SAME ORDER AS TRAINING!)
         angsuran = pinjaman / tenor
         pendapatan_bersih = pendapatan - pengeluaran
         
@@ -735,7 +741,7 @@ class CreditScoringModelUltra:
         df['High_Income'] = int(pendapatan >= 10_000_000)
         df['Low_Income'] = int(pendapatan < 3_000_000)
         
-        # Encode categorical features FIRST (before scaling)
+        # STEP 4: Encode categorical features AFTER creating numeric features
         for col in self.le_dict.keys():
             if col in df.columns:
                 try:
@@ -749,21 +755,20 @@ class CreditScoringModelUltra:
             else:
                 df[col] = 0
         
-        # Ensure all features present
+        # STEP 5: Ensure all features match feature_names order
         for col in self.feature_names:
             if col not in df.columns:
                 df[col] = 0
         
-        # Reorder columns to match feature_names order
         df = df[self.feature_names]
         
-        # Scale ALL features (numerical columns in feature_names)
-        df_scaled = pd.DataFrame(
-            self.scaler.transform(df),
-            columns=self.feature_names
-        )
+        # STEP 6: Scale ONLY the features that were scaled during training
+        df_to_scale = df[self.scaled_features].copy()
+        df_scaled_values = self.scaler.transform(df_to_scale.values)
+        df_scaled = df.copy()
+        df_scaled[self.scaled_features] = df_scaled_values
         
-        # Predict
+        # STEP 7: Predict
         X_input = np.nan_to_num(df_scaled.values, nan=0.0)
         pred = self.model.predict(X_input)[0]
         pred_proba = self.model.predict_proba(X_input)[0]
@@ -777,7 +782,6 @@ class CreditScoringModelUltra:
         risiko_skor = 'Rendah' if skor >= 70 else 'Sedang' if skor >= 50 else 'Tinggi'
         risiko_jaminan = 'Rendah' if input_data.get('Jaminan') == 'Ada' else 'Tinggi'
         
-        # Get the actual values before scaling
         fh_score = (
             (skor / 100) * 0.30 +
             (1 - min(dti, 1)) * 0.25 +
@@ -812,7 +816,7 @@ class CreditScoringModelUltra:
 def main():
     """Main"""
     print("\n" + "="*80)
-    print(" CREDIT SCORING SYSTEM - FIXED VERSION")
+    print(" CREDIT SCORING SYSTEM - COMPLETELY FIXED VERSION")
     print(" Target: 95%+ Test Accuracy | Gap <5% | No Memory Issues")
     print("="*80)
     
