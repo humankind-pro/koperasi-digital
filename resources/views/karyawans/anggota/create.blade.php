@@ -1,7 +1,6 @@
 <x-app-layout>
     <div class="py-8 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
         <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
-            <!-- Header Card -->
             <div class="bg-white shadow-2xl rounded-3xl overflow-hidden mb-6">
                 <div class="bg-gradient-to-r from-cyan-600 via-blue-600 to-blue-700 px-8 py-6">
                     <div class="flex items-center justify-between">
@@ -18,7 +17,6 @@
                     </div>
                 </div>
                 <div class="p-8">
-                    <!-- Error Messages -->
                     @if ($errors->any())
                         <div class="mb-6 bg-red-50 border-l-4 border-red-500 p-6 rounded-r-xl shadow-sm">
                             <div class="flex items-start">
@@ -35,7 +33,6 @@
                     @endif
                     <form id="formAnggota" method="POST" action="{{ route('anggota.store') }}" enctype="multipart/form-data" class="space-y-8">
                         @csrf
-                        <!-- SECTION 1: Upload Dokumen -->
                         <div class="space-y-5">
                             <div class="flex items-center space-x-3">
                                 <div class="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold shadow-lg">
@@ -47,7 +44,6 @@
                                 </div>
                             </div>
                             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                <!-- Foto KTP -->
                                 <div class="group">
                                     <label class="flex items-center text-sm font-bold text-gray-700 mb-3">
                                         <svg class="w-5 h-5 mr-2 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -71,7 +67,6 @@
                                         <img id="img-ktp" class="rounded-2xl shadow-xl max-h-64 mx-auto border-4 border-white" alt="Preview KTP"/>
                                     </div>
                                 </div>
-                                <!-- Foto Selfie -->
                                 <div class="group">
                                     <label class="flex items-center text-sm font-bold text-gray-700 mb-3">
                                         <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -98,7 +93,6 @@
                                 </div>
                             </div>
                         </div>
-                        <!-- Loading OCR -->
                         <div id="ocr-loading" class="hidden text-center py-12">
                             <div class="inline-flex flex-col items-center space-y-4">
                                 <svg class="animate-spin h-16 w-16 text-cyan-600" fill="none" viewBox="0 0 24 24">
@@ -111,7 +105,6 @@
                                 </div>
                             </div>
                         </div>
-                        <!-- SECTION 2: Data KTP (OCR Result) - WIDER TABLE LAYOUT -->
                         <div id="ocr-result" class="hidden space-y-6">
                             <div class="flex items-center space-x-3">
                                 <div class="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold shadow-lg">
@@ -122,7 +115,6 @@
                                     <p class="text-gray-600">Verifikasi dan lengkapi data jika diperlukan</p>
                                 </div>
                             </div>
-                            <!-- OCR Preview Card - WIDER GRID -->
                             <div class="bg-gradient-to-br from-cyan-50 via-blue-50 to-indigo-50 rounded-3xl p-6 border-2 border-cyan-200 shadow-xl">
                                 <div class="flex items-center justify-between mb-5">
                                     <div class="flex items-center space-x-3">
@@ -140,7 +132,6 @@
                                         Edit Manual
                                     </button>
                                 </div>
-                                <!-- WIDER GRID LAYOUT - 4 columns instead of 3 -->
                                 <div id="ocr-preview-display" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                                     <div class="bg-white/60 backdrop-blur-sm rounded-xl p-3 shadow-sm">
                                         <p class="text-xs font-semibold text-gray-500 mb-1">NIK</p>
@@ -200,7 +191,6 @@
                                     </div>
                                 </div>
                             </div>
-                            <!-- Manual Input Section - WIDER GRID -->
                             <div id="manual-input-section" class="hidden bg-white border-3 border-amber-400 rounded-3xl p-6 shadow-2xl">
                                 <div class="flex items-center justify-between mb-6">
                                     <div class="flex items-center space-x-3">
@@ -215,7 +205,6 @@
                                         Batal Edit
                                     </button>
                                 </div>
-                                <!-- WIDER GRID - 4 columns -->
                                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                                     <div>
                                         <label class="block text-sm font-bold text-gray-700 mb-2">
@@ -335,7 +324,6 @@
                                 </div>
                             </div>
                         </div>
-                        <!-- End Credit Score Information -->
                         <div id="additional-data-section" class="hidden space-y-6">
                             <div class="flex items-center space-x-3">
                                 <div class="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center text-white font-bold shadow-lg">
@@ -370,8 +358,7 @@
                                             <option value="SD">1. SD</option>
                                             <option value="SMP">2. SMP</option>
                                             <option value="SMA/SMK">3. SMA?SMK</option>
-                                            <option value="D3">4. Diploma</option> <!-- Assuming D3 maps to Diploma -->
-                                            <option value="S1">5. S1</option>
+                                            <option value="D3">4. Diploma</option> <option value="S1">5. S1</option>
                                             <option value="S2">6. S2</option>
                                             <option value="S3">7. S3</option>
                                         </select>
@@ -394,7 +381,6 @@
                                         </label>
                                         <input type="number" name="umur" id="umur" min="17" max="100" class="w-full px-4 py-2.5 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition" placeholder="35" required>
                                     </div>
-                                    <!-- Lama Bekerja (Hanya Numerik) -->
                                     <div class="lg:col-span-2">
                                         <label class="flex items-center text-sm font-bold text-gray-700 mb-2">
                                             <div class="p-1.5 bg-blue-100 rounded-xl mr-2">
@@ -425,7 +411,6 @@
                                     </div>
                                 </div>
                             </div>
-                            <!-- Status Tempat Tinggal -->
                             <div class="bg-gradient-to-br from-violet-50 to-fuchsia-50 rounded-3xl p-6 border-2 border-violet-200">
                                 <h5 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
                                     <svg class="w-5 h-5 mr-2 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -434,7 +419,6 @@
                                     Status Tempat Tinggal <span class="text-red-500 ml-1">*</span>
                                 </h5>
                                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-                                    <!-- Milik Sendiri -->
                                     <label class="relative cursor-pointer group">
                                         <input type="radio" name="status_tempat_tinggal" value="Milik Sendiri" class="peer sr-only" required>
                                         <div class="peer-checked:bg-violet-500 peer-checked:text-white bg-white border-2 border-violet-200 rounded-xl p-4 text-center transition-all hover:border-violet-300 peer-checked:border-violet-500 peer-checked:shadow-lg">
@@ -445,7 +429,6 @@
                                             <p class="text-xs mt-1 peer-checked:text-white text-gray-600">Pemilik rumah</p>
                                         </div>
                                     </label>
-                                    <!-- Sewa -->
                                     <label class="relative cursor-pointer group">
                                         <input type="radio" name="status_tempat_tinggal" value="Sewa" class="peer sr-only">
                                         <div class="peer-checked:bg-violet-500 peer-checked:text-white bg-white border-2 border-violet-200 rounded-xl p-4 text-center transition-all hover:border-violet-300 peer-checked:border-violet-500 peer-checked:shadow-lg">
@@ -456,7 +439,6 @@
                                             <p class="text-xs mt-1 peer-checked:text-white text-gray-600">Kontrak tahunan</p>
                                         </div>
                                     </label>
-                                    <!-- Kontrak -->
                                     <label class="relative cursor-pointer group">
                                         <input type="radio" name="status_tempat_tinggal" value="Kontrak" class="peer sr-only">
                                         <div class="peer-checked:bg-violet-500 peer-checked:text-white bg-white border-2 border-violet-200 rounded-xl p-4 text-center transition-all hover:border-violet-300 peer-checked:border-violet-500 peer-checked:shadow-lg">
@@ -467,7 +449,6 @@
                                             <p class="text-xs mt-1 peer-checked:text-white text-gray-600">Jangka pendek</p>
                                         </div>
                                     </label>
-                                    <!-- Rumah Orang Tua -->
                                     <label class="relative cursor-pointer group">
                                         <input type="radio" name="status_tempat_tinggal" value="Rumah Orang Tua" class="peer sr-only">
                                         <div class="peer-checked:bg-violet-500 peer-checked:text-white bg-white border-2 border-violet-200 rounded-xl p-4 text-center transition-all hover:border-violet-300 peer-checked:border-violet-500 peer-checked:shadow-lg">
@@ -481,7 +462,6 @@
                                 </div>
                             </div>
                         </div>
-                        <!-- SECTION 4 & 5: Financial & Loan Data - WIDER GRID -->
                         <div id="financial-data-section" class="hidden space-y-6">
                             <div class="flex items-center space-x-3">
                                 <div class="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center text-white font-bold shadow-lg">
@@ -583,13 +563,12 @@
                                             <option value="Modal Usaha">Modal Usaha</option>
                                             <option value="Pendidikan">Pendidikan</option>
                                             <option value="Renovasi">Renovasi</option>
-                                            <option value="Kesehatan">Kesehatan/Darurat</option> ✅
+                                            <option value="Kesehatan">Kesehatan/Darurat</option>
                                             <option value="Pernikahan">Pernikahan</option>
                                             <option value="Konsumtif">Konsumtif</option>
                                             <option value="Investasi">Investasi</option>
                                         </select>
                                     </div>
-                                    <!-- Pertanyaan Jaminan -->
                                     <div class="md:col-span-2 lg:col-span-3">
                                         <label class="flex items-center text-sm font-bold text-gray-700 mb-2">
                                             <svg class="w-4 h-4 mr-2 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -620,7 +599,6 @@
                                     </div>
                                 </div>
                             </div>
-                            <!-- Bagian Jaminan (Disembunyikan secara default) -->
                             <div id="jaminan-section" class="hidden bg-gradient-to-br from-amber-50 to-yellow-50 rounded-3xl p-6 shadow-lg border-2 border-amber-200">
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                                     <div>
@@ -653,7 +631,6 @@
                                     </div>
                                 </div>
                             </div>
-                            <!-- Riwayat Tunggakan Section -->
                             <div class="bg-gradient-to-br from-slate-50 to-sky-50 rounded-3xl p-6 shadow-lg border-2 border-slate-200">
                                 <h5 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
                                     <svg class="w-5 h-5 mr-2 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -664,10 +641,7 @@
                                 <p class="text-sm text-gray-600 mb-4">Apakah Anda pernah memiliki riwayat keterlambatan pembayaran pinjaman?</p>
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                                     <label class="relative cursor-pointer group">
-                                        <!-- CHANGED VALUE FROM "Tidak Pernah" TO "Tidak" -->
-                                        <!-- REMOVED 'checked' AS INPUT HIDDEN WILL HANDLE THE VALUE -->
-                                        <!-- KEPT 'disabled' AS PER REQUIREMENT -->
-                                        <input type="radio" name="riwayat_tunggakan" value="Tidak" class="peer sr-only" disabled>
+                                        <input type="radio" name="riwayat_tunggakan" value="Tidak" class="peer sr-only" required>
                                         <div class="peer-checked:bg-emerald-500 peer-checked:text-white bg-white border-2 border-emerald-200 rounded-xl p-4 text-center transition-all hover:border-emerald-300 peer-checked:border-emerald-500 peer-checked:shadow-lg">
                                             <svg class="w-8 h-8 mx-auto mb-2 text-emerald-600 peer-checked:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -677,7 +651,7 @@
                                         </div>
                                     </label>
                                     <label class="relative cursor-pointer group">
-                                        <input type="radio" name="riwayat_tunggakan" value="Pernah" class="peer sr-only" disabled>
+                                        <input type="radio" name="riwayat_tunggakan" value="Pernah" class="peer sr-only" required>
                                         <div class="peer-checked:bg-amber-500 peer-checked:text-white bg-white border-2 border-amber-200 rounded-xl p-4 text-center transition-all hover:border-amber-300 peer-checked:border-amber-500 peer-checked:shadow-lg">
                                             <svg class="w-8 h-8 mx-auto mb-2 text-amber-600 peer-checked:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -686,8 +660,8 @@
                                             <p class="text-xs mt-1 peer-checked:text-white text-gray-600">Ada riwayat tunggakan</p>
                                         </div>
                                     </label>
-                                    <label class="relative cursor-pointer group col-span-full"> <!-- Full width for the third option -->
-                                        <input type="radio" name="riwayat_tunggakan" value="Sering" class="peer sr-only" disabled>
+                                    <label class="relative cursor-pointer group col-span-full">
+                                        <input type="radio" name="riwayat_tunggakan" value="Sering" class="peer sr-only" required>
                                         <div class="peer-checked:bg-rose-500 peer-checked:text-white bg-white border-2 border-rose-200 rounded-xl p-4 text-center transition-all hover:border-rose-300 peer-checked:border-rose-500 peer-checked:shadow-lg">
                                             <svg class="w-8 h-8 mx-auto mb-2 text-rose-600 peer-checked:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -697,12 +671,8 @@
                                         </div>
                                     </label>
                                 </div>
-                                <!-- ADDED HIDDEN INPUT TO SEND THE DEFAULT VALUE -->
-                                <!-- This input will send the value "Tidak Pernah" to the server -->
-                                <input type="hidden" name="riwayat_tunggakan" value="Tidak">
                             </div>
                         </div>
-                        <!-- Submit Button -->
                         <div class="flex justify-between items-center gap-4 pt-6 border-t-2 border-gray-200">
                             <a href="{{ route('anggota.index') }}" class="px-6 py-3 bg-gray-200 hover:bg-gray-300 rounded-xl font-bold transition-all shadow-md">
                                 <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
