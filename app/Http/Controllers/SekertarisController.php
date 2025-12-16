@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Pinjaman;
 use Carbon\Carbon;
 use App\Models\PengaturanAbsensi;
+use App\Models\User;
 
 class SekertarisController extends Controller
 {
@@ -35,21 +36,29 @@ class SekertarisController extends Controller
      */
     public function rekapPinjaman(Request $request)
     {
-        // Ambil input bulan & tahun dari request, atau default ke bulan/tahun saat ini
+        // 1. Ambil input bulan & tahun
         $bulan = $request->input('bulan', now()->month);
         $tahun = $request->input('tahun', now()->year);
 
-        // Query data pinjaman berdasarkan filter
+        // 2. Query data pinjaman (Tampilkan semua pengajuan bulan itu)
         $dataPinjaman = Pinjaman::with(['anggota', 'diajukanOleh', 'divalidasiOleh'])
             ->whereMonth('tanggal_pengajuan', $bulan)
             ->whereYear('tanggal_pengajuan', $tahun)
             ->orderBy('tanggal_pengajuan', 'desc')
             ->get();
 
-        // Hitung total untuk footer tabel
+        // 3. Hitung Statistik
         $totalPengajuan = $dataPinjaman->count();
-        $totalDisetujui = $dataPinjaman->where('status', 'disetujui')->count();
-        $totalNominal = $dataPinjaman->where('status', 'disetujui')->sum('jumlah_disetujui');
+        
+        // REVISI: Hitung jumlah item yang 'disetujui' ATAU 'lunas'
+        $totalDisetujui = $dataPinjaman->whereIn('status', ['disetujui', 'lunas'])->count();
+
+        // 4. REVISI TOTAL NOMINAL
+        // Menjumlahkan kolom 'jumlah_disetujui' untuk status 'disetujui' DAN 'lunas'
+        $totalNominal = Pinjaman::whereMonth('tanggal_pengajuan', $bulan)
+            ->whereYear('tanggal_pengajuan', $tahun)
+            ->whereIn('status', ['disetujui', 'lunas']) // <--- PERUBAHAN DISINI
+            ->sum('jumlah_disetujui');
 
         return view('sekertaris.pinjaman.rekap', compact(
             'dataPinjaman', 
@@ -60,7 +69,6 @@ class SekertarisController extends Controller
             'totalNominal'
         ));
     }
-
     public function editPengaturan()
 {
     $pengaturan = PengaturanAbsensi::first();
