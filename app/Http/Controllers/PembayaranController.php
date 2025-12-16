@@ -17,7 +17,7 @@ class PembayaranController extends Controller
     public function indexPinjamanAktif(Request $request)
     {
         $query = Pinjaman::with('anggota')
-            ->where('status', 'disetujui') // Hanya pinjaman aktif
+            ->whereIn('status', ['disetujui', 'menunggak']) // Hanya pinjaman aktif
             ->where('diajukan_oleh_user_id', Auth::id()); // Filter: Hanya nasabah binaan karyawan ini
 
         // (Opsional) Fitur Search Nama Nasabah
